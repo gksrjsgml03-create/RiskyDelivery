@@ -89,6 +89,15 @@ namespace RiskyDelivery
             var cartObject = new GameObject("Delivery cart");
             var body = Box("Cart body", Vector3.zero, new Vector3(1.5f, 0.65f, 2), teal);
             body.transform.SetParent(cartObject.transform, false);
+            // The cart rolls; default box friction otherwise nearly cancels its motor force.
+            body.GetComponent<Collider>().sharedMaterial = new PhysicsMaterial("Cart rolling friction")
+            {
+                staticFriction = 0.05f,
+                dynamicFriction = 0.05f,
+                frictionCombine = PhysicsMaterialCombine.Minimum,
+                bounceCombine = PhysicsMaterialCombine.Minimum,
+                bounciness = 0
+            };
             Cart = cartObject.AddComponent<Rigidbody>();
             Cart.mass = 4;
             Cart.constraints = RigidbodyConstraints.FreezeRotation;

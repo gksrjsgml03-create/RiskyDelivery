@@ -25,7 +25,7 @@ namespace RiskyDelivery
             float deadline = Time.realtimeSinceStartup + 15;
             while (game.Cart.position.z < 22.8f)
             {
-                if (Time.realtimeSinceStartup > deadline) { Fail("Cart did not reach destination approach"); yield break; }
+                if (Time.realtimeSinceStartup > deadline) { Fail($"Cart did not reach destination approach: position={game.Cart.position}, velocity={game.Cart.linearVelocity}, elapsed={game.Elapsed}, state={game.State}, gravity={Physics.gravity}"); yield break; }
                 yield return new WaitForFixedUpdate();
             }
             if (game.State != DeliveryGame.RunState.Playing) { Fail("Delivery completed before stopping"); yield break; }
