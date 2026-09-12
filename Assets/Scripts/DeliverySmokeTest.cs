@@ -8,6 +8,8 @@ namespace RiskyDelivery
     public sealed class DeliverySmokeTest : MonoBehaviour
     {
         private DeliveryGame game;
+        private float measuredDistance, measuredLateralSpeed;
+        private bool crossedWet, crossedDry;
         private static readonly WaitForFixedUpdate PhysicsFrame = new WaitForFixedUpdate();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -76,13 +78,64 @@ namespace RiskyDelivery
             game.SetControls(Vector2.zero, true);
             yield return Until(() => game.State == DeliveryGame.RunState.Delivered, 3, "Roadworks delivery");
             Check(game.CargoHealth == 100 && game.Rating == 3, "Roadworks has a damage-free route");
-            Check(!game.TryNextChapter(), "No nonexistent third chapter");
+            Check(game.TryNextChapter() && game.Chapter == 3, "Advance from roadworks to rain run");
+            CheckReset();
+            yield return MeasureBraking(1);
+            float dryDistance = measuredDistance;
+            yield return MeasureBraking(3);
+            float wetDistance = measuredDistance;
+            Check(wetDistance > dryDistance * 3 && wetDistance > 3, "Wet road has meaningfully longer braking distance");
+            yield return MeasureSteering(1);
+            float dryLateral = measuredLateralSpeed;
+            yield return MeasureSteering(3);
+            Check(measuredLateralSpeed > dryLateral + 1.2f, "Wet road preserves lateral momentum when counter-steering");
+            Debug.Log($"RISKY_CHECK_OK: wet braking {wetDistance:0.00}m vs dry {dryDistance:0.00}m; wet counter-steer {measuredLateralSpeed:0.00}m/s vs dry {dryLateral:0.00}m/s");
+            game.Restart();
+            CheckReset();
+            Check(game.Chapter == 3 && !game.OnWetRoad, "Rain retry starts on dry ground");
+            Vector2[] rainRoute = {
+                new Vector2(3.8f, -10), new Vector2(3.8f, 6.5f),
+                new Vector2(-3.8f, 6.5f), new Vector2(-3.8f, 23), new Vector2(0, 25)
+            };
+            foreach (Vector2 waypoint in rainRoute) yield return DriveTo(waypoint);
+            game.SetControls(Vector2.zero, true);
+            yield return Until(() => game.State == DeliveryGame.RunState.Delivered, 3, "Rain delivery");
+            Check(crossedWet && crossedDry, "Rain route crosses wet and dry surfaces");
+            Check(game.CargoHealth == 100 && game.Rating == 3, "Rain route can be completed without damage");
+            Check(!game.TryNextChapter(), "No nonexistent fourth chapter");
             game.StartChapter(1);
             CheckReset();
-            Check(game.Chapter == 1, "Chapter selection resets state");
-            Debug.Log("RISKY_DELIVERY_SMOKE_OK: training, chapters, low/high-speed collisions, failure, restart, damage-free roadworks delivery");
+            Check(game.Chapter == 1 && !game.OnWetRoad && !RenderSettings.fog, "Chapter selection clears rain and resets state");
+            Debug.Log("RISKY_DELIVERY_SMOKE_OK: training, chapters, low/high-speed collisions, failure, restart, damage-free roadworks and rain delivery, wet braking and counter-steering");
             Time.timeScale = 1;
             Application.Quit(0);
+        }
+
+        private IEnumerator MeasureBraking(int chapter)
+        {
+            game.StartChapter(chapter);
+            game.Cart.position = new Vector3(0, 0.4f, -6);
+            game.SetControls(Vector2.zero, true);
+            yield return new WaitForSeconds(0.15f);
+            Check(game.OnWetRoad == (chapter == 3), "Surface detection for braking comparison");
+            float startZ = game.Cart.position.z;
+            game.Cart.linearVelocity = Vector3.forward * 6;
+            yield return Until(() => game.Cart.linearVelocity.magnitude < 0.25f, 5, "Brake to stop");
+            measuredDistance = game.Cart.position.z - startZ;
+            Check(game.CargoHealth == 100, "Braking comparison does not hit obstacles");
+        }
+
+        private IEnumerator MeasureSteering(int chapter)
+        {
+            game.StartChapter(chapter);
+            game.Cart.position = new Vector3(0, 0.4f, -4);
+            game.SetControls(Vector2.zero, true);
+            yield return new WaitForSeconds(0.15f);
+            game.Cart.linearVelocity = Vector3.right * 4;
+            game.SetControls(Vector2.left, false);
+            float end = Time.fixedTime + 0.25f;
+            while (Time.fixedTime < end) yield return PhysicsFrame;
+            measuredLateralSpeed = game.Cart.linearVelocity.x;
         }
 
         private IEnumerator DriveTo(Vector2 target)
@@ -93,6 +146,11 @@ namespace RiskyDelivery
                 Check(Time.realtimeSinceStartup < deadline, "Route waypoint " + target);
                 Check(game.State == DeliveryGame.RunState.Playing || (target.y == 25 && game.State == DeliveryGame.RunState.Delivered), "Route remains playable");
                 if (game.State == DeliveryGame.RunState.Delivered) yield break;
+                if (game.Chapter == 3)
+                {
+                    crossedWet |= game.OnWetRoad;
+                    crossedDry |= !game.OnWetRoad;
+                }
                 Vector2 delta = target - new Vector2(game.Cart.position.x, game.Cart.position.z);
                 game.SetControls(Vector2.ClampMagnitude(delta * 1.5f, 1), true);
                 yield return PhysicsFrame;
