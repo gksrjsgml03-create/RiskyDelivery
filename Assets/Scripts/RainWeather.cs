@@ -14,15 +14,10 @@ namespace RiskyDelivery
             var random = new System.Random(73);
             for (int i = 0; i < drops.Length; i++)
             {
-                var drop = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                drop.name = "Rain streak";
-                Destroy(drop.GetComponent<Collider>());
-                drop.transform.SetParent(transform, false);
-                drop.transform.localScale = new Vector3(0.025f, 0.6f, 0.025f);
+                var position = new Vector3((float)random.NextDouble() * 24 - 12, (float)random.NextDouble() * 14, (float)random.NextDouble() * 26 - 13);
+                var drop = WorldGeometry.Decoration(transform, "Rain streak", position, new Vector3(0.025f, 0.6f, 0.025f), material);
                 drop.transform.localRotation = Quaternion.Euler(-12, 0, -10);
-                drop.transform.localPosition = new Vector3((float)random.NextDouble() * 24 - 12, (float)random.NextDouble() * 14, (float)random.NextDouble() * 26 - 13);
                 var renderer = drop.GetComponent<Renderer>();
-                renderer.sharedMaterial = material;
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
                 drops[i] = drop.transform;

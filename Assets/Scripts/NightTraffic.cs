@@ -1,4 +1,5 @@
 using UnityEngine;
+using static RiskyDelivery.WorldGeometry;
 
 namespace RiskyDelivery
 {
@@ -77,19 +78,6 @@ namespace RiskyDelivery
             headlight.intensity = 6;
             headlight.renderMode = LightRenderMode.ForcePixel;
             SetActive(false);
-        }
-
-        private static void Decoration(Transform parent, string name, Vector3 position, Vector3 scale, Material material)
-        {
-            var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            box.name = name;
-            box.transform.SetParent(parent, false);
-            box.transform.localPosition = position;
-            box.transform.localScale = scale;
-            box.GetComponent<Renderer>().sharedMaterial = material;
-            // Disable immediately as well as destroying: these shapes are never physical obstacles.
-            box.GetComponent<Collider>().enabled = false;
-            Object.Destroy(box.GetComponent<Collider>());
         }
 
         public void SetActive(bool active)

@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace RiskyDelivery
 {
-    public sealed class DeliveryGame : MonoBehaviour
+    public sealed partial class DeliveryGame : MonoBehaviour
     {
         public enum RunState { Playing, Delivered, Failed }
         public RunState State { get; private set; }
@@ -11,7 +11,7 @@ namespace RiskyDelivery
         public int Chapter { get; private set; } = 1;
         public int CargoHealth { get; private set; } = 100;
         public int Rating => State != RunState.Delivered ? 0 : CargoHealth >= 90 ? 3 : CargoHealth >= 50 ? 2 : 1;
-        public const int ChapterCount = 5;
+        public static int ChapterCount => ChapterCatalog.Count;
         public CargoBalance Balance { get; private set; }
         public NightTraffic Night { get; private set; }
         private GameObject roadworks, rainCourse, hillCourse;
@@ -20,7 +20,7 @@ namespace RiskyDelivery
         private Collider flatCartCollider;
         private readonly Collider[] hillCartColliders = new Collider[2];
         public bool OnWetRoad => Chapter == 3 && Cart != null && RainyRoad.Contains(Cart.position);
-        public static string ChapterLabel(int chapter) => chapter == 1 ? "TRAINING" : chapter == 2 ? "ROADWORKS" : chapter == 3 ? "RAIN RUN" : chapter == 4 ? "HILL DELIVERY" : "NIGHT SHIFT";
+        public static string ChapterLabel(int chapter) => ChapterCatalog.Get(chapter).Title;
         public string ChapterName => $"{Chapter:00} / {ChapterLabel(Chapter)}";
         private Material parcelMaterial;
         private float lastImpactTime = -10, impactFlash;
@@ -31,7 +31,6 @@ namespace RiskyDelivery
         private Vector2 input, tilt, tiltVelocity;
         private Vector3 previousVelocity;
         private bool braking;
-        private GUIStyle titleStyle, textStyle, smallStyle;
         public bool Automated { get; set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -46,174 +45,6 @@ namespace RiskyDelivery
             Application.targetFrameRate = 60;
             BuildWorld();
             StartChapter(1);
-        }
-
-        private Material Mat(Color color)
-        {
-            var template = Resources.Load<Material>("WorldMaterial");
-            var material = template != null ? new Material(template) : new Material(Shader.Find("Standard"));
-            material.color = color;
-            material.SetFloat("_Glossiness", 0.15f);
-            return material;
-        }
-
-        private GameObject Box(string label, Vector3 position, Vector3 size, Material material, bool solid = true)
-        {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = label;
-            go.transform.position = position;
-            go.transform.localScale = size;
-            go.GetComponent<Renderer>().sharedMaterial = material;
-            if (!solid) Destroy(go.GetComponent<Collider>());
-            return go;
-        }
-
-        private void BuildWorld()
-        {
-            foreach (var oldCamera in FindObjectsByType<Camera>(FindObjectsSortMode.None))
-                oldCamera.gameObject.SetActive(false);
-            RenderSettings.ambientLight = new Color(0.65f, 0.72f, 0.82f);
-            sun = new GameObject("Sun").AddComponent<Light>();
-            sun.type = LightType.Directional;
-            sun.intensity = 1.2f;
-            sun.shadows = LightShadows.Soft;
-            sun.transform.rotation = Quaternion.Euler(45, -35, 0);
-            var road = Mat(new Color(0.17f, 0.22f, 0.29f));
-            var grass = Mat(new Color(0.21f, 0.43f, 0.36f));
-            var white = Mat(new Color(0.94f, 0.93f, 0.82f));
-            var yellow = Mat(new Color(1f, 0.7f, 0.19f));
-            var teal = Mat(new Color(0.12f, 0.85f, 0.72f));
-            Box("Ground", new Vector3(0, -0.8f, 8), new Vector3(70, 1, 90), grass);
-            Box("Delivery road", new Vector3(0, -0.15f, 8), new Vector3(14, 0.3f, 52), road);
-            Barrier("Left barrier", new Vector3(-7.3f, 0.35f, 8), new Vector3(0.5f, 0.7f, 52), white);
-            Barrier("Right barrier", new Vector3(7.3f, 0.35f, 8), new Vector3(0.5f, 0.7f, 52), white);
-            Barrier("Start barrier", new Vector3(0, 0.35f, -18), new Vector3(15, 0.7f, 0.5f), white);
-            Barrier("End barrier", new Vector3(0, 0.35f, 34), new Vector3(15, 0.7f, 0.5f), white);
-            for (int z = -15; z < 32; z += 4)
-                Box("Lane marking", new Vector3(0, 0.015f, z), new Vector3(0.12f, 0.02f, 1.5f), white, false);
-            Box("Depot", new Vector3(0, 0.025f, -12), new Vector3(6, 0.04f, 5), yellow, false);
-            Box("Delivery zone", Destination + Vector3.up * 0.035f, new Vector3(6, 0.05f, 5), teal, false);
-            for (int i = 0; i < 9; i++)
-            {
-                float height = 2 + (i % 3) * 1.5f;
-                var facade = Mat(Color.Lerp(new Color(0.3f, 0.42f, 0.52f), new Color(0.67f, 0.47f, 0.34f), (i % 4) / 3f));
-                foreach (int side in new[] { -1, 1 })
-                {
-                    Box("Warehouse", new Vector3(side * 12, height / 2, -12 + i * 5.5f), new Vector3(6, height, 4), facade);
-                    Box("Warehouse door", new Vector3(side * 8.95f, 0.85f, -12 + i * 5.5f), new Vector3(0.05f, 1.7f, 1.7f), white, false);
-                }
-            }
-            roadworks = new GameObject("Chapter 2 - Roadworks");
-            var orange = Mat(new Color(1f, 0.32f, 0.12f));
-            for (int i = 0; i < 3; i++)
-            {
-                float x = i == 1 ? 2 : -2;
-                float z = -3 + i * 10;
-                var obstacle = Barrier("Construction barricade", new Vector3(x, 0.6f, z), new Vector3(7, 1.2f, 0.8f), orange);
-                obstacle.transform.SetParent(roadworks.transform);
-                for (int stripe = -2; stripe <= 2; stripe++)
-                {
-                    var mark = Box("Reflective stripe", new Vector3(x + stripe * 1.2f, 0.65f, z - 0.415f), new Vector3(0.35f, 0.85f, 0.025f), white, false);
-                    mark.transform.rotation = Quaternion.Euler(0, 0, -25);
-                    mark.transform.SetParent(roadworks.transform);
-                }
-                var guide = Box("Safe passage", new Vector3(i == 1 ? -3.8f : 3.8f, 0.03f, z), new Vector3(1.2f, 0.025f, 2), teal, false);
-                guide.transform.SetParent(roadworks.transform);
-            }
-            rainCourse = new GameObject("Chapter 3 - Rain Run");
-            var water = Mat(new Color(0.12f, 0.42f, 0.66f));
-            water.SetFloat("_Glossiness", 0.8f);
-            var reflection = Mat(new Color(0.46f, 0.72f, 0.84f));
-            foreach (Rect patch in RainyRoad.Patches)
-            {
-                var puddle = Box("Slippery blue road", new Vector3(patch.center.x, 0.04f, patch.center.y), new Vector3(patch.width, 0.035f, patch.height), water, false);
-                puddle.transform.SetParent(rainCourse.transform);
-                for (float z = patch.yMin + 1; z < patch.yMax; z += 2)
-                {
-                    foreach (int side in new[] { -1, 1 })
-                    {
-                        var ripple = Box("Water reflection", new Vector3(side * 5.6f, 0.064f, z), new Vector3(1.1f, 0.012f, 0.09f), reflection, false);
-                        ripple.transform.SetParent(rainCourse.transform);
-                    }
-                }
-            }
-            for (int i = 0; i < 2; i++)
-            {
-                float x = i == 0 ? -2 : 2;
-                float z = i == 0 ? 4 : 21;
-                var obstacle = Barrier("Flood diversion barrier", new Vector3(x, 0.6f, z), new Vector3(7, 1.2f, 0.8f), orange);
-                obstacle.transform.SetParent(rainCourse.transform);
-                for (int stripe = -2; stripe <= 2; stripe++)
-                {
-                    var mark = Box("Flood barrier reflector", new Vector3(x + stripe * 1.2f, 0.65f, z - 0.415f), new Vector3(0.35f, 0.85f, 0.025f), white, false);
-                    mark.transform.rotation = Quaternion.Euler(0, 0, -25);
-                    mark.transform.SetParent(rainCourse.transform);
-                }
-                var guide = Box("Rain route safe passage", new Vector3(-Mathf.Sign(x) * 3.8f, 0.04f, z), new Vector3(1.2f, 0.025f, 2), teal, false);
-                guide.transform.SetParent(rainCourse.transform);
-            }
-            hillCourse = HillRoad.Create(road, yellow, teal);
-            var cartObject = new GameObject("Delivery cart");
-            cartObject.AddComponent<CartImpactReceiver>().Game = this;
-            var body = Box("Cart body", Vector3.zero, new Vector3(1.5f, 0.65f, 2), teal);
-            body.transform.SetParent(cartObject.transform, false);
-            // The cart rolls; default box friction otherwise nearly cancels its motor force.
-            cartFriction = new PhysicsMaterial("Cart rolling friction")
-            {
-                staticFriction = 0.05f,
-                dynamicFriction = 0.05f,
-                frictionCombine = PhysicsMaterialCombine.Minimum,
-                bounceCombine = PhysicsMaterialCombine.Minimum,
-                bounciness = 0
-            };
-            body.GetComponent<Collider>().sharedMaterial = cartFriction;
-            flatCartCollider = body.GetComponent<Collider>();
-            // Rounded runners cross convex ramp crests without catching a box's leading edge.
-            for (int i = 0; i < hillCartColliders.Length; i++)
-            {
-                var runner = cartObject.AddComponent<CapsuleCollider>();
-                runner.direction = 2;
-                runner.radius = 0.325f;
-                runner.height = 2;
-                runner.center = new Vector3(i == 0 ? -0.425f : 0.425f, 0, 0);
-                runner.sharedMaterial = cartFriction;
-                hillCartColliders[i] = runner;
-            }
-            Cart = cartObject.AddComponent<Rigidbody>();
-            Cart.mass = 4;
-            Cart.constraints = RigidbodyConstraints.FreezeRotation;
-            Cart.interpolation = RigidbodyInterpolation.Interpolate;
-            Cart.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-            var rain = new GameObject("Rain around courier");
-            rain.transform.SetParent(rainCourse.transform);
-            rain.AddComponent<RainWeather>().Initialize(Cart.transform, reflection);
-            cargo = new GameObject("Cargo balance pivot").transform;
-            cargo.SetParent(cartObject.transform, false);
-            cargo.localPosition = new Vector3(0, 0.325f, 0);
-            parcelMaterial = Mat(new Color(1f, 0.7f, 0.19f));
-            var parcel = Box("Fragile parcel", Vector3.zero, new Vector3(1.1f, 1.15f, 1.1f), parcelMaterial, false);
-            parcel.transform.SetParent(cargo, false);
-            parcel.transform.localPosition = Vector3.up * 0.575f;
-            var tape = Box("Parcel tape", Vector3.zero, new Vector3(0.18f, 1.17f, 1.12f), white, false);
-            tape.transform.SetParent(cargo, false);
-            tape.transform.localPosition = Vector3.up * 0.575f;
-            Balance = new CargoBalance(cargo);
-            Night = new NightTraffic(Cart.transform, orange, road, white, yellow);
-            followCamera = new GameObject("Follow camera").AddComponent<Camera>();
-            followCamera.tag = "MainCamera";
-            followCamera.gameObject.AddComponent<AudioListener>();
-            followCamera.orthographic = true;
-            followCamera.orthographicSize = 10;
-            followCamera.backgroundColor = new Color(0.11f, 0.16f, 0.23f);
-            followCamera.clearFlags = CameraClearFlags.SolidColor;
-            followCamera.transform.rotation = Quaternion.Euler(52, 0, 0);
-        }
-
-        private GameObject Barrier(string name, Vector3 position, Vector3 size, Material material)
-        {
-            var barrier = Box(name, position, size, material);
-            barrier.AddComponent<DeliveryHazard>();
-            return barrier;
         }
 
         public void StartChapter(int chapter)
@@ -341,83 +172,6 @@ namespace RiskyDelivery
             followCamera.transform.position = Vector3.Lerp(followCamera.transform.position, target, 1 - Mathf.Exp(-7 * Time.deltaTime));
         }
 
-        private void OnGUI()
-        {
-            if (titleStyle == null)
-            {
-                titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 30, fontStyle = FontStyle.Bold };
-                textStyle = new GUIStyle(GUI.skin.label) { fontSize = 20 };
-                smallStyle = new GUIStyle(GUI.skin.label) { fontSize = 15 };
-            }
-            float scale = Mathf.Min(Screen.width / 1100f, Screen.height / 700f);
-            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one * scale);
-            GUI.Box(new Rect(18, 18, 420, 146), GUIContent.none);
-            GUI.Label(new Rect(34, 28, 400, 42), "RISKY DELIVERY", titleStyle);
-            GUI.Label(new Rect(34, 72, 400, 30), $"{ChapterName}   /   {Elapsed:0.0}s", textStyle);
-            GUI.Label(new Rect(34, 108, 400, 48), Chapter == 1 ? "Deliver the parcel to the mint zone.\nStop inside the zone to finish." : Chapter == 2 ? "Follow the mint gaps: RIGHT - LEFT - RIGHT.\nBrake before turns. Protect the parcel!" : Chapter == 3 ? "Blue road = low grip. Brake BEFORE puddles.\nPass the barriers on the RIGHT, then LEFT." : Chapter == 4 ? "Hold SPACE while moving to secure your load.\nClimb the hill. Avoid sudden speed changes." : "Stop BEFORE the white lines. Watch the signals.\nCross on a fresh green. Avoid moving traffic.", smallStyle);
-            GUI.Box(new Rect(18, 610, 660, 68), GUIContent.none);
-            GUI.Label(new Rect(34, 620, 630, 28), "WASD / ARROWS  Move     SPACE  Brake     R  Restart", textStyle);
-            GUI.Label(new Rect(34, 651, 620, 24), "Release movement keys to stop. Keep your parcel steady!", smallStyle);
-            GUI.Box(new Rect(774, 18, 308, 118), GUIContent.none);
-            GUI.Label(new Rect(792, 30, 275, 30), $"CARGO CONDITION   {CargoHealth}%", textStyle);
-            Color healthColor = CargoHealth > 50 ? new Color(0.2f, 0.9f, 0.7f) : new Color(1, 0.35f, 0.2f);
-            GUI.color = new Color(0.16f, 0.2f, 0.25f);
-            GUI.DrawTexture(new Rect(792, 70, 270, 16), Texture2D.whiteTexture);
-            GUI.color = healthColor;
-            GUI.DrawTexture(new Rect(792, 70, 270 * CargoHealth / 100f, 16), Texture2D.whiteTexture);
-            GUI.color = Color.white;
-            GUI.Label(new Rect(792, 98, 280, 25), "Hard impacts damage your delivery.", smallStyle);
-            if (impactFlash > 0 && State == RunState.Playing)
-                GUI.Label(new Rect(430, 178, 340, 32), $"IMPACT!  -{lastDamage}% CARGO", textStyle);
-            if (Chapter == 3)
-            {
-                GUI.Box(new Rect(774, 150, 308, 80), GUIContent.none);
-                GUI.color = OnWetRoad ? new Color(0.5f, 0.85f, 1) : Color.white;
-                GUI.Label(new Rect(792, 160, 280, 30), OnWetRoad ? "LOW GRIP / BRAKE EARLY" : "DRY ROAD / NORMAL GRIP", textStyle);
-                GUI.color = Color.white;
-                GUI.Label(new Rect(792, 196, 275, 25), $"Speed: {new Vector2(Cart.linearVelocity.x, Cart.linearVelocity.z).magnitude:0.0} m/s", smallStyle);
-            }
-            if (Chapter == 4)
-            {
-                GUI.Box(new Rect(774, 150, 308, 138), GUIContent.none);
-                GUI.color = Balance.Risk > 0.55f ? new Color(1, 0.5f, 0.2f) : healthColor;
-                GUI.Label(new Rect(792, 160, 280, 30), Balance.HasFallen ? "CARGO LOST" : Balance.Risk > 0.55f ? "LOAD SLIDING! SLOW DOWN" : "LOAD SECURE", textStyle);
-                GUI.DrawTexture(new Rect(792, 198, 270 * Balance.Risk, 12), Texture2D.whiteTexture);
-                GUI.color = Color.white;
-                GUI.Label(new Rect(792, 224, 275, 25), $"Load shift: {Balance.Risk * 100:0}%   /   Speed: {new Vector2(Cart.linearVelocity.x, Cart.linearVelocity.z).magnitude:0.0} m/s", smallStyle);
-                float grade = HillRoad.Grade(Cart.position.z);
-                GUI.Label(new Rect(792, 254, 275, 25), grade > 0 ? "UPHILL / KEEP A STEADY PACE" : grade < 0 ? "DOWNHILL / CONTROL YOUR SPEED" : "LEVEL ROAD / TURN GENTLY", smallStyle);
-            }
-            if (Chapter == 5)
-            {
-                GUI.Box(new Rect(774, 150, 308, 132), GUIContent.none);
-                int crossing = Night.NextCrossing(Cart.position.z);
-                GUI.Label(new Rect(792, 160, 275, 26), crossing < 0 ? "ALL CROSSINGS CLEAR" : $"CROSSING {crossing + 1} / 2", textStyle);
-                if (crossing >= 0)
-                {
-                    var signal = Night.GetSignal(crossing);
-                    GUI.color = signal == NightTraffic.Signal.Green ? new Color(0.2f, 0.9f, 0.7f) : signal == NightTraffic.Signal.Amber ? new Color(1, 0.7f, 0.2f) : new Color(1, 0.35f, 0.25f);
-                    GUI.Label(new Rect(792, 196, 275, 26), signal == NightTraffic.Signal.Green ? $"GREEN / {Night.GreenRemaining(crossing):0.0}s LEFT" : signal == NightTraffic.Signal.Amber ? "AMBER / DO NOT ENTER" : "CROSS TRAFFIC / WAIT", textStyle);
-                    GUI.color = Color.white;
-                    GUI.Label(new Rect(792, 232, 275, 30), signal == NightTraffic.Signal.Green ? Night.GreenRemaining(crossing) >= 4.2f ? "Fresh green: cross at a steady pace." : "Short green: wait for the next cycle." : $"Next green in {Night.UntilGreen(crossing):0.0}s", smallStyle);
-                }
-                else GUI.Label(new Rect(792, 204, 275, 48), "Head for the mint delivery zone.\nStop inside it to finish.", smallStyle);
-            }
-            for (int chapter = 1; chapter <= ChapterCount; chapter++)
-                if (GUI.Button(new Rect(850, 648 - (ChapterCount - chapter) * 38, 232, 30), $"{chapter}  /  {ChapterLabel(chapter)}")) StartChapter(chapter);
-            if (State != RunState.Playing)
-            {
-                GUI.Box(new Rect(310, 225, 480, 270), GUIContent.none);
-                GUI.Label(new Rect(334, 242, 440, 45), State == RunState.Delivered ? "DELIVERY COMPLETE!" : Balance.HasFallen ? "PARCEL FELL OFF!" : "PARCEL BROKEN!", titleStyle);
-                GUI.Label(new Rect(334, 296, 440, 30), State == RunState.Delivered ? $"{Elapsed:0.0}s   /   Cargo {CargoHealth}%   /   Rating {Rating}/3" : Balance.HasFallen ? "Hold SPACE from the start. Turn gently." : Chapter == 5 ? "Wait behind the line for a fresh green." : "Slow down before hitting a barrier.", textStyle);
-                if (State == RunState.Delivered && Chapter < ChapterCount)
-                {
-                    if (GUI.Button(new Rect(334, 350, 432, 48), $"CHAPTER {Chapter + 1}: {ChapterLabel(Chapter + 1)}  [ENTER]")) TryNextChapter();
-                }
-                else
-                    GUI.Label(new Rect(334, 351, 432, 40), State == RunState.Delivered ? "Try again for a faster, safer delivery." : "Your cargo is lost. Try a safer route.", smallStyle);
-                if (GUI.Button(new Rect(334, 418, 432, 48), "RETRY CHAPTER  [R]")) Restart();
-            }
-        }
+
     }
 }

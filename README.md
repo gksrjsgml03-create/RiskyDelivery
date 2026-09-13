@@ -147,6 +147,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Build-And-Test.ps1
 
 ## 개발 방식
 
+`DeliveryGame.cs`는 주행과 게임 상태, `DeliveryGame.World.cs`는 월드 구성, `DeliveryGame.Hud.cs`는 화면 표시를 담당합니다. 같은 게임 컴포넌트의 partial 파일이며 Unity 씬 참조를 유지합니다. 챕터 이름·안내는 `ChapterCatalog`, 공통 도형·장식·장애물 생성은 `WorldGeometry`에서 관리합니다.
+
 사용자가 개발 방향을 결정하고, 에이전트가 구현 → 검증·빌드 → 문서 갱신 → 커밋·푸시를 수행합니다. 작업 규칙은 `AGENTS.md`에 기록되어 있습니다.
 GitHub Actions를 통한 배포 자동화는 향후 배포 단계에서 진행합니다.
 Library, Temp, Logs, Builds 등 생성 파일은 Git에 포함하지 않습니다.
