@@ -13,6 +13,7 @@ namespace RiskyDelivery.Editor
         {
             PlayerSettings.companyName = "RiskyDelivery";
             PlayerSettings.productName = "Risky Delivery";
+            PlayerSettings.bundleVersion = "0.1.0";
             PlayerSettings.defaultScreenWidth = 1280;
             PlayerSettings.defaultScreenHeight = 800;
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
@@ -39,13 +40,24 @@ namespace RiskyDelivery.Editor
         [MenuItem("Risky Delivery/Build Windows")]
         public static void BuildWindows()
         {
+            Build("Builds/Windows/RiskyDelivery.exe", BuildOptions.Development);
+        }
+
+        [MenuItem("Risky Delivery/Build Release Windows")]
+        public static void BuildReleaseWindows()
+        {
+            Build("Builds/Release/RiskyDelivery.exe", BuildOptions.None);
+        }
+
+        private static void Build(string output, BuildOptions options)
+        {
             Prepare();
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = new[] { "Assets/Scenes/Delivery.unity" },
-                locationPathName = "Builds/Windows/RiskyDelivery.exe",
+                locationPathName = output,
                 target = BuildTarget.StandaloneWindows64,
-                options = BuildOptions.Development
+                options = options
             });
             if (report.summary.result != BuildResult.Succeeded)
                 throw new Exception("Windows build failed: " + report.summary.result);

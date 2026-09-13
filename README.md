@@ -1,7 +1,9 @@
-# Risky Delivery — 위험한 택배 배달
+# Risky Delivery 0.1.0 — 위험한 택배 배달
 
 Unity 6.3 LTS **6000.3.18f1** 기반의 3D 카트 배달 게임입니다.
 도로, 창고, 카트와 택배는 기본 도형으로 생성합니다.
+
+0.1.0은 시작 화면, 5개 챕터, 일시정지, 기록 저장, 최종 결과와 재도전까지 연결한 첫 완성판입니다. 게임 내 UI는 영어이며 한국어 플레이 안내는 `Docs/PLAYER_GUIDE.md`에 있습니다. 그래픽은 기본 도형을 사용하는 소규모 게임입니다.
 
 ## 챕터
 
@@ -83,11 +85,12 @@ Space로 감속해도 오래 미끄러지며, 반대 방향을 눌러도 기존 
 
 카트 주행음, 충돌·성공·실패·전체 완료 효과음과 메뉴 클릭음을 포함합니다. 직접 합성한 소리를 사용하며 외부 음원 파일은 필요하지 않습니다. 시작·일시정지 화면과 플레이 중 `M`으로 음소거할 수 있습니다. 일시정지는 게임 효과음도 멈추고 메뉴 소리만 허용합니다.
 
-`Builds/Windows/RiskyDelivery.exe`를 실행합니다. 최신 Unity Windows Development 빌드에는 **챕터 1~5**가 포함되어 있습니다.
-게임 창을 클릭한 뒤 **5번 키**로 야간 배송을 선택합니다.
+플레이용 최신 실행 파일은 `Builds/Release/RiskyDelivery.exe`입니다. 개발용 표시가 없는 Release 빌드에 **챕터 1~5**와 전체 게임 흐름이 포함되어 있습니다.
+전달용 파일은 `Builds/Packages/RiskyDelivery-0.1.0-Windows.zip`입니다. 압축을 풀고 폴더 안의 실행 파일을 엽니다. `Docs/PLAYER_GUIDE.md`도 패키지에 `README.txt`로 포함합니다.
+시작 화면에서 Enter로 시작하거나 **5번 키**로 야간 배송을 선택합니다.
 이전에 언덕 챕터 빌드를 막았던 Unity 라이선스 문제는 해소되었으며, 언덕·야간 챕터 모두 새 Unity 빌드에 포함되어 있습니다.
 실행 파일은 로컬에 있으며 Git에는 포함하지 않습니다.
-다른 PC로 옮길 때는 exe만이 아니라 `Builds/Windows` 폴더 전체를 복사합니다.
+다른 PC로 옮길 때는 압축 파일 또는 `Builds/Release` 폴더 전체를 복사합니다. 개발 중 확인용 Development 빌드는 `Builds/Windows`에 별도로 생성됩니다.
 
 ## Unity에서 실행
 
@@ -99,10 +102,11 @@ Space로 감속해도 오래 미끄러지며, 반대 방향을 눌러도 기존 
 
 프로젝트 설정을 다시 준비하려면 메뉴 **Risky Delivery → Prepare Project**를 실행합니다.
 Windows 실행 파일은 **Risky Delivery → Build Windows**로 만듭니다.
+플레이용 Release 빌드는 **Risky Delivery → Build Release Windows**로 만듭니다.
 
 ## 검증 (2026-09-13)
 
-- 전체 C# 컴파일 및 Unity Windows Development 빌드 통과.
+- 전체 C# 컴파일 및 Unity Windows Development·Release 빌드 통과.
 - 실제 Windows 플레이어의 그래픽 없는 모드에서 전체 주행·충돌·챕터 자동 검사 통과 (종료 코드 0).
 - 챕터 1 이동, 목적지 정차 후 성공, 챕터 2 전환.
 - 실제 바리케이드의 이동 차단과 저속 충돌 무피해.
@@ -121,9 +125,10 @@ Windows 실행 파일은 **Risky Delivery → Build Windows**로 만듭니다.
 - 존재하지 않는 챕터 6으로 진행하지 않는지 확인.
 - 시작 화면과 일시정지에서는 물리·교통·타이머·피해가 진행되지 않으며, 재개·재시작·챕터 선택이 정상 동작하는지 확인.
 - 실제 파일 저장·재읽기, 최고 기록 유지, 손상 파일 백업 복구, 새 버전 저장 파일 보호, 저장 불가 상황의 세션 기록 유지 및 5개 챕터 완료 화면을 확인.
+- 기존 저장 기록을 유지하는 음소거 설정 마이그레이션과 저장·복원, 일시정지 시 오디오 중지를 확인.
 
-그래픽 모드에서 챕터 1~5, 야간 노란불·이동 차량, 성공·실패·택배 낙하 화면을 게임 내부에서 캡처해 검토했습니다.
-캡처 결과는 로컬 `Builds/Validation/NightPreview/`에 저장되어 있습니다.
+그래픽 모드에서 시작·일시정지·음소거·기록·전체 완료 화면, 챕터 1~5, 야간 신호·이동 차량, 성공·실패·택배 낙하 화면을 게임 내부에서 캡처해 검토했습니다.
+최종 캡처는 로컬 `Builds/Validation/ReleasePreview/`에 저장되어 있습니다.
 캡처는 화면 검토용 상태를 설정합니다. 실제 완주 검증은 위의 별도 주행 검사로 수행합니다.
 
 자동 검사 명령:
@@ -136,11 +141,11 @@ RiskyDelivery.exe -batchmode -nographics -risky-smoke-test -logFile smoke.log
 화면 캡처 명령 (그래픽 창이 보여야 하며, hidden / nographics 모드는 지원하지 않습니다):
 
 ```text
-RiskyDelivery.exe -risky-preview C:\Users\gksrj\RiskyDelivery\Builds\Validation\NightPreview
+RiskyDelivery.exe -risky-preview C:\Users\gksrj\RiskyDelivery\Builds\Validation\ReleasePreview
 ```
 
 완료하면 `RISKY_DELIVERY_PREVIEW_OK`를 기록하고 자동 종료합니다.
-최신 로컬 로그: `Logs/smoke-windows.log`, `Logs/preview-night.log`, `Logs/build-latest.log`.
+Release 로그: `Logs/smoke-release.log`, `Logs/preview-release.log`, `Logs/build-release.log`. Development 로그는 `Logs/smoke-windows.log`, `Logs/build-latest.log`입니다.
 `Tools/Check-Compile.ps1`은 설치된 Unity 참조 DLL로 C# 컴파일만 검사합니다.
 
 ## 빌드·검증 자동화
@@ -153,6 +158,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Build-And-Test.ps1
 
 성공 시 종료 코드 0과 `BUILD_AND_TEST_OK`를 출력합니다. 검사 결과는 `Builds/Validation/verification.json`에 기록합니다. 빌드나 테스트가 실패하면 오류로 종료합니다.
 
+`-Release`는 플레이용 Release 빌드를 검사하고 `verification-release.json`에 결과를 기록합니다. `-CapturePreview`는 그래픽 창을 열어 전체 화면 캡처까지 검사합니다. 화면 캡처 옵션은 그래픽 데스크톱이 있는 환경에서 사용합니다.
+
+Release 빌드·전체 검사·화면 캡처·ZIP 생성과 무결성 검증을 한 번에 수행하려면:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Package-Release.ps1 -CapturePreview
+```
+
+패키지 생성은 빌드·주행 검사가 통과한 경우에만 진행합니다. 테스트 생성 파일과 디버그 심볼은 제외하고, 필수 실행 파일 및 ZIP 안의 게임 스크립트 SHA-256이 검증한 빌드와 일치하는지 확인합니다. ZIP 전체의 `.sha256` 파일도 함께 생성합니다. 이 명령은 로컬 패키지를 만들며 온라인 게시를 수행하지 않습니다.
+
 라이선스가 다시 차단될 때만 `-AllowExistingPlayer`를 명시하면 기존 Mono 플레이어의 복사본으로 스크립트 검증을 이어갑니다. 이 경우 테스트가 통과해도 **종료 코드 2**와 `SCRIPT_TESTS_PASSED_BUILD_BLOCKED`로 새 빌드 미완료를 구분합니다. 일반 빌드 오류는 이 경로로 숨기지 않습니다.
 
 `Tools/Test-PlayerScripts.ps1`만 실행하면 원본을 수정하지 않고 `Builds/Validation/NightPlayer` 복사본에서 새 스크립트를 검사합니다 (`Logs/smoke-NightPlayer.log`). `-ValidationName`으로 별도 복사본 이름을 지정할 수도 있습니다. 이 방식은 Unity 임포트·씬·스트리핑 및 새 빌드 검증을 대체하지 않습니다.
@@ -160,6 +175,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Build-And-Test.ps1
 ## 개발 방식
 
 `DeliveryGame.cs`는 주행과 게임 상태, `DeliveryGame.World.cs`는 월드 구성, `DeliveryGame.Hud.cs`는 화면 표시를 담당합니다. 같은 게임 컴포넌트의 partial 파일이며 Unity 씬 참조를 유지합니다. 챕터 이름·안내는 `ChapterCatalog`, 공통 도형·장식·장애물 생성은 `WorldGeometry`에서 관리합니다.
+메뉴·세션 전환은 `DeliveryGame.Menus.cs`와 `DeliveryGame.Session.cs`, 기록 저장은 `DeliveryProgress`, 사운드는 `DeliverySound`가 담당합니다.
 
 사용자가 개발 방향을 결정하고, 에이전트가 구현 → 검증·빌드 → 문서 갱신 → 커밋·푸시를 수행합니다. 작업 규칙은 `AGENTS.md`에 기록되어 있습니다.
 GitHub Actions를 통한 배포 자동화는 향후 배포 단계에서 진행합니다.
