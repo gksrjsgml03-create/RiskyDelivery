@@ -1,0 +1,17 @@
+name: 게임 문제 제보
+description: 실행 오류 또는 플레이 중 문제를 알려주세요.
+body:
+  - type: input
+    id: version
+    attributes:
+      label: 게임 버전 / Windows 버전
+      placeholder: 0.3.0 / Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 문제와 재현 방법
+      description: 챕터, 조작 순서, 기대한 결과와 실제 결과를 적어주세요. 개인정보나 API 키를 올리지 마세요.
+    validations:
+      required: true

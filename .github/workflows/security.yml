@@ -1,0 +1,35 @@
+name: Security checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1'
+permissions:
+  contents: read
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  secrets:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan history and working files
+        shell: pwsh
+        run: ./Tools/Test-Secrets.ps1
+      - name: Check PowerShell syntax
+        shell: pwsh
+        run: |
+          foreach ($file in Get-ChildItem Tools -Filter '*.ps1') {
+            $errors = $null
+            [void][Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$errors)
+            if ($errors.Count) { throw "PowerShell syntax errors in $($file.Name): $errors" }
+          }
+      - name: Test release validation rejection cases
+        shell: pwsh
+        run: ./Tools/Test-Deployment.ps1

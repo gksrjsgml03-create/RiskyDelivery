@@ -25,6 +25,11 @@ foreach ($file in Get-ChildItem -LiteralPath $source -Recurse -File) {
     Copy-Item -LiteralPath $file.FullName -Destination $destination
 }
 Copy-Item -LiteralPath (Join-Path $project 'Docs\PLAYER_GUIDE.md') -Destination (Join-Path $stage 'README.txt')
+$sourceCommit = (& git -C $project rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0) { throw 'Cannot identify the release source commit.' }
+$dirty = @(& git -C $project diff HEAD --name-only).Count -gt 0
+@{ schema = 1; version = $releaseVersion; platform = 'Windows-x64'; sourceCommit = $sourceCommit; dirty = $dirty; builtAt = [DateTime]::UtcNow.ToString('o'); playerTestsPassed = $true } |
+    ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stage 'build-info.json') -Encoding UTF8
 $archive = Join-Path $packages ('RiskyDelivery-' + $releaseVersion + '-Windows.zip')
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem

@@ -1,0 +1,90 @@
+name: Release validation and publication
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing draft release tag (v0.3.0)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    outputs:
+      zip_hash: ${{ steps.digest.outputs.zip_hash }}
+      checksum_hash: ${{ steps.digest.outputs.checksum_hash }}
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Validate version input
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid release tag.' }
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Secret scan
+        shell: pwsh
+        run: ./Tools/Test-Secrets.ps1
+      - name: Download draft candidate
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = $env:RELEASE_TAG.Substring(1)
+          New-Item -ItemType Directory -Force Builds/Candidate | Out-Null
+          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --dir Builds/Candidate --pattern "RiskyDelivery-$version-Windows.zip*"
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate download failed.' }
+      - name: Verify archive and run all five chapters on a fresh Windows machine
+        shell: pwsh
+        run: |
+          $version = $env:RELEASE_TAG.Substring(1)
+          $commit = (git rev-parse HEAD).Trim()
+          ./Tools/Test-ReleasePackage.ps1 -Archive "Builds/Candidate/RiskyDelivery-$version-Windows.zip" -ExpectedCommit $commit -Version $version -RunPlayer
+      - name: Record validated asset digests
+        id: digest
+        shell: pwsh
+        run: |
+          $zip = "Builds/Candidate/RiskyDelivery-$($env:RELEASE_TAG.Substring(1))-Windows.zip"
+          "zip_hash=$((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "checksum_hash=$((Get-FileHash ($zip + '.sha256') -Algorithm SHA256).Hash.ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+      - name: Keep player diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: player-validation-${{ inputs.tag }}
+          path: Logs/downloaded-player.log
+          retention-days: 14
+          if-no-files-found: ignore
+  publish:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      ZIP_HASH: ${{ needs.validate.outputs.zip_hash }}
+      CHECKSUM_HASH: ${{ needs.validate.outputs.checksum_hash }}
+    steps:
+      - name: Publish exactly the validated draft assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:RELEASE_TAG" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or !$release.draft -or $release.assets.Count -ne 2) { throw 'Expected a draft with exactly two candidate assets.' }
+          $name = "RiskyDelivery-$($env:RELEASE_TAG.Substring(1))-Windows.zip"
+          $zip = @($release.assets | Where-Object name -CEQ $name)
+          $checksum = @($release.assets | Where-Object name -CEQ ($name + '.sha256'))
+          if ($zip.Count -ne 1 -or $checksum.Count -ne 1 -or $zip[0].digest -cne ('sha256:' + $env:ZIP_HASH) -or $checksum[0].digest -cne ('sha256:' + $env:CHECKSUM_HASH)) { throw 'Candidate assets changed after validation.' }
+          gh release edit $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Publication failed.' }
+          "Published https://github.com/$env:GITHUB_REPOSITORY/releases/tag/$env:RELEASE_TAG" >> $env:GITHUB_STEP_SUMMARY

@@ -1,5 +1,7 @@
 # Risky Delivery 0.3.0 — 위험한 택배 배달
 
+[게임 다운로드](https://github.com/gksrjsgml03-create/RiskyDelivery/releases/latest) · [문제 제보](https://github.com/gksrjsgml03-create/RiskyDelivery/issues) · [배포 운영 안내](Docs/OPERATIONS.md) · [보안 정책](SECURITY.md)
+
 Unity 6.3 LTS **6000.3.18f1** 기반의 3인칭 택배 배달 게임입니다.
 파란 작업복과 모자를 쓴 배달원이 양손으로 상자를 들고 주택가를 이동합니다. 참고 이미지의 블록형 캐릭터와 따뜻한 야간 주택가 분위기를 코드로 만든 3D 모델에 반영했습니다.
 
@@ -186,5 +188,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Package-Release.ps1 -C
 `CourierVisual`은 이동 방향 회전과 걷기 리그, `ResidentialStreet`는 주택가 장식을 생성합니다. 기존 `Cart` 속성은 챕터 물리 동작과 호환되도록 유지한 캐릭터 이동용 Rigidbody이며 카트 렌더러는 표시하지 않습니다. `CargoBalance`의 공통 상자 크기를 렌더링과 낙하 충돌체에 함께 사용합니다. 자동 검사는 캐릭터 회전·상자 결합·걷기·원근 카메라·재시작 초기화도 포함합니다.
 
 사용자가 개발 방향을 결정하고, 에이전트가 구현 → 검증·빌드 → 문서 갱신 → 커밋·푸시를 수행합니다. 작업 규칙은 `AGENTS.md`에 기록되어 있습니다.
-GitHub Actions를 통한 배포 자동화는 향후 배포 단계에서 진행합니다.
+`Tools/Publish-Release.ps1`은 로컬 Unity 빌드·검증부터 GitHub 초안 업로드와 Actions 배포 검증까지 시작합니다. GitHub의 별도 Windows 환경에서 다운로드한 게임을 검사한 뒤 공개합니다. 보안 검사는 push·PR·매주 자동 실행합니다. 운영 절차와 자동화 범위는 `Docs/OPERATIONS.md`에 기록합니다.
 Library, Temp, Logs, Builds 등 생성 파일은 Git에 포함하지 않습니다.
