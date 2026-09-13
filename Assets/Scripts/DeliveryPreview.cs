@@ -28,10 +28,11 @@ namespace RiskyDelivery
             game.Automated = true;
             while (!SplashScreen.isFinished) yield return null;
             Directory.CreateDirectory(outputDirectory);
-            for (int chapter = 1; chapter <= 3; chapter++)
+            for (int chapter = 1; chapter <= DeliveryGame.ChapterCount; chapter++)
             {
                 game.StartChapter(chapter);
                 if (chapter == 3) game.Cart.position = new Vector3(3.8f, 0.4f, -4);
+                if (chapter == 4) game.Cart.position = new Vector3(0, 2.2f, 4);
                 yield return new WaitForSeconds(0.8f);
                 yield return Capture("chapter" + chapter);
             }
@@ -43,6 +44,15 @@ namespace RiskyDelivery
             game.Cart.position = game.Destination + Vector3.up * 0.4f;
             yield return new WaitForSeconds(0.8f);
             yield return Capture("delivered");
+            game.StartChapter(4);
+            game.SetControls(Vector2.up, false);
+            float deadline = Time.realtimeSinceStartup + 10;
+            while (game.Cart.position.z < 0 && Time.realtimeSinceStartup < deadline) yield return null;
+            game.SetControls(Vector2.down, false);
+            while (!game.Balance.HasFallen && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!game.Balance.HasFallen) throw new InvalidOperationException("Preview expected cargo to fall during an abrupt reversal");
+            yield return new WaitForSeconds(0.5f);
+            yield return Capture("cargo-fallen");
             Debug.Log("RISKY_DELIVERY_PREVIEW_OK");
             Application.Quit(0);
         }

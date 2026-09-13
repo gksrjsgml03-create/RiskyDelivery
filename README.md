@@ -39,7 +39,16 @@ Space로 감속해도 오래 미끄러지며, 반대 방향을 눌러도 기존 
 - 빗줄기, 흐린 조명, 물결 표시와 현재 속도 표시를 추가했습니다.
 - 챕터 2 성공 후 Enter로 이어서 진입하거나 숫자 3으로 바로 선택합니다.
 
-현재 택배 흔들림은 시각 효과입니다. 택배 낙하와 경사로는 아직 구현하지 않았습니다.
+### 4. 언덕 배송
+
+실제 높이 1.8m의 오르막·정상·내리막을 통과합니다. 이 챕터에서는 급가속·급제동·급격한 방향 전환으로 택배가 적재함에서 밀려 떨어질 수 있습니다.
+
+- 출발부터 **Space를 누른 채 이동**하면 안전하게 저속 운행할 수 있습니다.
+- `LOAD SECURE` / `LOAD SLIDING!`과 적재 이동량 표시로 낙하 위험을 확인합니다.
+- 적재함 위에서는 가속도와 경사에 따른 미끄러짐을 계산하고, 가장자리를 넘으면 택배를 독립 물리 물체로 전환합니다.
+- 낙하 시 배송에 실패하며, `R`로 택배·위치·내구도·적재 상태를 초기화합니다.
+- 챕터 3 성공 후 Enter로 진행하거나 숫자 4로 선택합니다.
+- 챕터 1~3의 택배 흔들림은 기존처럼 시각 효과이며, 낙하 규칙은 챕터 4에 적용합니다.
 
 ## 조작
 
@@ -48,13 +57,15 @@ Space로 감속해도 오래 미끄러지며, 반대 방향을 눌러도 기존 
 | WASD / 방향키 | 이동 |
 | Space | 감속 / 누른 채 이동하면 저속 운행 |
 | R | 현재 챕터 재시작, 내구도와 시간 초기화 |
-| 1 / 2 / 3 | 연습 배송 / 공사 구간 / 빗길 배송 선택 |
-| Enter | 챕터 1·2 성공 후 다음 챕터로 이동 |
+| 1 / 2 / 3 / 4 | 연습 배송 / 공사 구간 / 빗길 배송 / 언덕 배송 선택 |
+| Enter | 챕터 1·2·3 성공 후 다음 챕터로 이동 |
 
 ## 바로 플레이하기 (현재 PC)
 
-`Builds/Windows/RiskyDelivery.exe`를 더블클릭합니다.
-게임 창을 클릭한 뒤 **3번 키**로 새 빗길 챕터를 선택하세요.
+기존 정식 Unity 빌드는 `Builds/Windows/RiskyDelivery.exe`이며 챕터 1~3이 포함되어 있습니다.
+챕터 4의 새 정식 빌드는 Unity 라이선스 활성화 후 **Risky Delivery → Build Windows**로 생성해야 합니다.
+현재 Unity는 `No valid Unity Editor license found`로 빌드를 중단합니다 (`Logs/build-hill.log`).
+새 챕터를 시험하려면 `Builds/Validation/HillPlayer/RiskyDelivery.exe`를 실행하고 **4번 키**를 누릅니다. 이 실행본은 기존 플레이어에 새 스크립트를 적용한 로컬 검증본입니다.
 실행 파일은 로컬에 있으며 Git에는 포함하지 않습니다.
 다른 PC로 옮길 때는 exe만이 아니라 `Builds/Windows` 폴더 전체를 복사합니다.
 
@@ -69,7 +80,7 @@ Space로 감속해도 오래 미끄러지며, 반대 방향을 눌러도 기존 
 프로젝트 설정을 다시 준비하려면 메뉴 **Risky Delivery → Prepare Project**를 실행합니다.
 Windows 실행 파일은 **Risky Delivery → Build Windows**로 만듭니다.
 
-## 검증 (2026-09-13)
+## 기존 챕터 1~3 검증 (2026-09-13)
 
 - 전체 C# 컴파일 및 Unity Windows Development 빌드 통과.
 - 실제 Windows 플레이어의 그래픽 없는 모드에서 전체 주행·충돌·챕터 자동 검사 통과 (종료 코드 0).
@@ -104,6 +115,20 @@ RiskyDelivery.exe -risky-preview C:\Users\gksrj\RiskyDelivery\Builds\Validation\
 완료하면 `RISKY_DELIVERY_PREVIEW_OK`를 기록하고 자동 종료합니다.
 로컬 로그: `Logs/smoke.log`, `Logs/preview.log`, `Logs/build.log`.
 `Tools/Check-Compile.ps1`은 설치된 Unity 참조 DLL로 C# 컴파일만 검사합니다.
+
+## 챕터 4 검증
+
+전체 C# 컴파일과 별도 검증 플레이어의 자동 주행 검사(종료 코드 0, `RISKY_DELIVERY_SMOKE_OK`)가 통과했습니다. Unity 라이선스 문제로 신규 에디터 빌드는 아직 완료하지 못했습니다.
+`Tools/Test-PlayerScripts.ps1`은 기존 Mono 플레이어를 `Builds/Validation/HillPlayer`로 복사하고, 현재 게임 스크립트를 컴파일해 해당 복사본에서 자동 주행 검사를 수행합니다.
+원본 Windows 빌드는 수정하지 않습니다. 이 검사는 새 Unity 에셋 임포트·씬·빌드·스트리핑 검증을 대체하지 않습니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Test-PlayerScripts.ps1
+```
+
+검사 항목: 기존 챕터 회귀 검사, 3 → 4 전환, 실제 경사로 상승·하강 및 무피해 완주, 언덕 위 급격한 방향 전환 시 낙하와 실패, 떨어진 택배의 독립 물리 이동, 낙하 후 배송 차단, 재시작·챕터 변경 시 적재 상태 복원.
+검사 로그는 `Logs/smoke-hill.log`에 기록합니다.
+검증 플레이어의 그래픽 모드에서도 챕터 1~4, 성공·파손·언덕 위 낙하 화면을 캡처해 확인했습니다 (`Logs/preview-hill.log`: `RISKY_DELIVERY_PREVIEW_OK`). 캡처는 `Builds/Validation/HillPreview/`에 있습니다.
 
 ## 개발 방식
 
