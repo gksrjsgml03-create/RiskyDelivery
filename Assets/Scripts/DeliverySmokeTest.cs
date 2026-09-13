@@ -52,6 +52,7 @@ namespace RiskyDelivery
             Time.timeScale = 3; // Keep the same fixed physics timestep, run the test faster.
             yield return CheckCourierView();
             yield return MovementSmokeTests.Run(game, Check);
+            yield return KnockbackSmokeTests.Run(game, Check);
             yield return CheckSessionFlow();
             game.StartChapter(1);
             Check(!game.TryNextChapter(), "Cannot advance before delivery");
@@ -78,8 +79,9 @@ namespace RiskyDelivery
             yield return Until(() => game.CargoHealth < 100, 5, "Fast barricade collision causes damage");
             int afterImpact = game.CargoHealth;
             Check(afterImpact > 0, "One ordinary collision is survivable");
+            game.SetControls(Vector2.zero, true);
             yield return new WaitForSeconds(1);
-            Check(game.CargoHealth == afterImpact, "Holding against wall does not repeatedly damage cargo");
+            Check(game.CargoHealth == afterImpact, "A single impact and its rebound do not repeatedly damage cargo");
             game.SetControls(Vector2.down, false, true);
             yield return Until(() => game.Cart.position.z < -11, 5, "Reverse away from barrier");
             game.SetControls(Vector2.up, false, true);

@@ -32,7 +32,7 @@ namespace RiskyDelivery
             if (GUI.Button(new Rect(182, 176, 180, 32), Progress.SoundEnabled ? "SOUND ON  [M]" : "SOUND OFF  [M]")) ToggleSound();
             GUI.Box(new Rect(18, 610, 660, 68), GUIContent.none);
             GUI.Label(new Rect(34, 620, 630, 28), "WASD Move   SHIFT Run   SPACE Slow   R Retry", textStyle);
-            GUI.Label(new Rect(34, 651, 620, 24), IsSprinting ? "RUNNING / Release SHIFT to walk. Watch your parcel!" : "WALKING / Hold SHIFT to run. SPACE steadies your grip.", smallStyle);
+            GUI.Label(new Rect(34, 651, 620, 24), IsRecoiling ? "STAGGERED / Recovering from the impact!" : IsSprinting ? "RUNNING / Release SHIFT to walk. Watch your parcel!" : "WALKING / Hold SHIFT to run. SPACE steadies your grip.", smallStyle);
             GUI.Box(new Rect(774, 18, 308, 118), GUIContent.none);
             GUI.Label(new Rect(792, 30, 275, 30), $"CARGO CONDITION   {CargoHealth}%", textStyle);
             Color healthColor = CargoHealth > 50 ? new Color(0.2f, 0.9f, 0.7f) : new Color(1, 0.35f, 0.2f);

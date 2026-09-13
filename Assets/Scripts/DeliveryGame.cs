@@ -35,7 +35,9 @@ namespace RiskyDelivery
         private Vector2 input, tilt, tiltVelocity;
         private Vector3 previousVelocity;
         private bool braking, sprintHeld;
-        public bool IsSprinting => View == ViewMode.Driving && State == RunState.Playing && sprintHeld && !braking && input.sqrMagnitude > 0.01f;
+        private float recoilRemaining;
+        public bool IsRecoiling => recoilRemaining > 0;
+        public bool IsSprinting => View == ViewMode.Driving && State == RunState.Playing && !IsRecoiling && sprintHeld && !braking && input.sqrMagnitude > 0.01f;
         public bool Automated { get; set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -84,11 +86,23 @@ namespace RiskyDelivery
             return true;
         }
 
-        public void RegisterImpact(float normalSpeed)
+        public void RegisterImpact(float normalSpeed, Vector3 contactNormal = default(Vector3))
         {
             // A scrape is measured along the contact normal, not total driving speed.
-            if (View != ViewMode.Driving || State != RunState.Playing || normalSpeed <= 2.5f || Time.time - lastImpactTime < 0.4f) return;
+            if (View != ViewMode.Driving || State != RunState.Playing || normalSpeed <= 1.2f || Time.time - lastImpactTime < 0.4f) return;
             lastImpactTime = Time.time;
+            contactNormal.y = 0;
+            if (contactNormal.sqrMagnitude > 0.01f)
+            {
+                Vector3 away = contactNormal.normalized;
+                Vector3 horizontal = new Vector3(Cart.linearVelocity.x, 0, Cart.linearVelocity.z);
+                Vector3 tangent = horizontal - away * Vector3.Dot(horizontal, away);
+                Cart.linearVelocity = tangent * 0.35f + away * Mathf.Min(normalSpeed * 0.7f, 6)
+                    + Vector3.up * Mathf.Max(Cart.linearVelocity.y, Mathf.Min(0.6f + normalSpeed * 0.12f, 1.6f));
+                recoilRemaining = Mathf.Clamp(0.18f + normalSpeed * 0.04f, 0.2f, 0.65f);
+            }
+            // Slow bumps still move the courier but do not damage the parcel.
+            if (normalSpeed <= 2.5f) return;
             lastDamage = Mathf.Clamp(Mathf.RoundToInt((normalSpeed - 2.5f) * 12), 1, 65);
             CargoHealth = Mathf.Max(0, CargoHealth - lastDamage);
             impactFlash = 0.8f;
@@ -108,6 +122,7 @@ namespace RiskyDelivery
             impactFlash = 0;
             lastDamage = 0;
             lastImpactTime = -10;
+            recoilRemaining = 0;
             input = tilt = tiltVelocity = Vector2.zero;
             braking = sprintHeld = false;
             previousVelocity = Vector3.zero;
@@ -134,18 +149,20 @@ namespace RiskyDelivery
             impactFlash = Mathf.Max(0, impactFlash - Time.deltaTime);
             parcelMaterial.color = impactFlash > 0 ? new Color(1, 0.18f, 0.12f) : Color.Lerp(new Color(0.45f, 0.2f, 0.1f), new Color(0.73f, 0.49f, 0.26f), CargoHealth / 100f);
             cargo.localRotation = Quaternion.Euler(tilt.y, 0, -tilt.x);
-            courier.Tick(Cart.linearVelocity, View == ViewMode.Driving ? Time.deltaTime : 0, IsSprinting);
+            courier.Tick(Cart.linearVelocity, View == ViewMode.Driving ? Time.deltaTime : 0, IsSprinting, IsRecoiling);
             Sound.Tick(new Vector2(Cart.linearVelocity.x, Cart.linearVelocity.z).magnitude, View == ViewMode.Driving && State == RunState.Playing);
         }
 
         private void FixedUpdate()
         {
+            if (View != ViewMode.Driving) return;
+            recoilRemaining = Mathf.Max(0, recoilRemaining - Time.fixedDeltaTime);
             if (State != RunState.Playing)
             {
-                Cart.linearVelocity = Vector3.zero;
+                // Let a fatal impact finish throwing the courier back before stopping the failed run.
+                if (!IsRecoiling) Cart.linearVelocity = Vector3.zero;
                 return;
             }
-            if (View != ViewMode.Driving) return;
             Vector3 horizontal = new Vector3(Cart.linearVelocity.x, 0, Cart.linearVelocity.z);
             Night.Step(Time.fixedDeltaTime);
             Vector3 desired = new Vector3(input.x, 0, input.y) * (braking ? 2 : IsSprinting ? 8 : 4);
@@ -155,14 +172,14 @@ namespace RiskyDelivery
             float response = wet ? (braking ? 1.2f : 0.7f) : (braking ? 8 : 3);
             float traction = wet ? (braking ? 2.4f : 2.8f) : (braking ? 20 : 12);
             Vector3 force = Vector3.ClampMagnitude((desired - horizontal) * response, traction);
-            Cart.AddForce(force, ForceMode.Acceleration);
+            if (!IsRecoiling) Cart.AddForce(force, ForceMode.Acceleration);
             Vector3 acceleration = (horizontal - previousVelocity) / Time.fixedDeltaTime;
             previousVelocity = horizontal;
             Balance.Step(this, acceleration);
             if (View != ViewMode.Driving || State != RunState.Playing) return;
             Vector2 target = Vector2.ClampMagnitude(new Vector2(-acceleration.x, -acceleration.z) * 1.4f, 35);
             tilt = Vector2.SmoothDamp(tilt, target, ref tiltVelocity, 0.22f, Mathf.Infinity, Time.fixedDeltaTime);
-            if (Mathf.Abs(Cart.position.x - Destination.x) < 2.5f && Mathf.Abs(Cart.position.z - Destination.z) < 2 && Mathf.Abs(Cart.position.y - 0.325f) < 0.3f && horizontal.magnitude < 1)
+            if (!IsRecoiling && Mathf.Abs(Cart.position.x - Destination.x) < 2.5f && Mathf.Abs(Cart.position.z - Destination.z) < 2 && Mathf.Abs(Cart.position.y - 0.325f) < 0.3f && horizontal.magnitude < 1)
                 CompleteDelivery();
         }
 

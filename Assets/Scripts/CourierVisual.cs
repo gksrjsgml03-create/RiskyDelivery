@@ -65,16 +65,19 @@ namespace RiskyDelivery
             Root.localRotation = Quaternion.identity;
             leftLeg.localRotation = rightLeg.localRotation = Quaternion.identity;
             torso.localPosition = new Vector3(0, 0.82f, 0);
+            torso.localRotation = Quaternion.identity;
         }
 
-        public void Tick(Vector3 velocity, float deltaTime, bool sprinting = false)
+        public void Tick(Vector3 velocity, float deltaTime, bool sprinting = false, bool recoiling = false)
         {
             velocity.y = 0;
             float speed = velocity.magnitude;
-            if (speed > 0.15f)
+            if (speed > 0.15f && !recoiling)
                 Root.localRotation = Quaternion.Slerp(Root.localRotation, Quaternion.LookRotation(velocity), 1 - Mathf.Exp(-12 * deltaTime));
             stride += speed * deltaTime * 3.5f;
             float amount = Mathf.Clamp01(speed / 3);
+            if (recoiling) amount *= 0.2f;
+            torso.localRotation = Quaternion.Slerp(torso.localRotation, Quaternion.Euler(recoiling ? -18 : 0, 0, 0), 1 - Mathf.Exp(-18 * deltaTime));
             float swing = sprinting ? 40 : 27;
             leftLeg.localRotation = Quaternion.Euler(Mathf.Sin(stride) * swing * amount, 0, 0);
             rightLeg.localRotation = Quaternion.Euler(-Mathf.Sin(stride) * swing * amount, 0, 0);

@@ -41,6 +41,17 @@ namespace RiskyDelivery
             game.SetControls(Vector2.down, true);
             yield return new WaitForSeconds(0.8f);
             yield return Capture("courier-front");
+            game.StartChapter(1);
+            game.SetControls(Vector2.up, false, true);
+            yield return new WaitForSeconds(0.9f);
+            yield return Capture("courier-running");
+            game.StartChapter(2);
+            game.SetControls(Vector2.up, false, true);
+            float impactDeadline = Time.realtimeSinceStartup + 6;
+            while (!game.IsRecoiling && Time.realtimeSinceStartup < impactDeadline) yield return null;
+            if (!game.IsRecoiling) throw new InvalidOperationException("Preview expected physical knockback from the barricade");
+            yield return new WaitForSeconds(0.1f);
+            yield return Capture("courier-knockback");
             for (int chapter = 1; chapter <= DeliveryGame.ChapterCount; chapter++)
             {
                 game.StartChapter(chapter);
