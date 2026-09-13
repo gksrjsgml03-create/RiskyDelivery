@@ -2,10 +2,13 @@ using UnityEngine;
 
 namespace RiskyDelivery
 {
-    // Cargo slides in the cart's deck plane. Once over the edge it becomes a free rigidbody.
+    // Sudden acceleration strains the courier's grip until the parcel drops.
     public sealed class CargoBalance
     {
         private readonly Transform cargo;
+        public static readonly Vector3 HoldPosition = new Vector3(0, 0.82f, 0.66f);
+        public static readonly Vector3 ParcelSize = new Vector3(1.1f, 0.86f, 1.1f);
+        public static readonly Vector3 ParcelCenter = Vector3.up * 0.43f;
         private Vector2 offset, velocity;
         private GameObject dropped;
         public bool HasFallen { get; private set; }
@@ -25,7 +28,7 @@ namespace RiskyDelivery
             FallenBody = null;
             offset = velocity = Vector2.zero;
             cargo.gameObject.SetActive(true);
-            cargo.localPosition = new Vector3(0, 0.325f, 0);
+            cargo.localPosition = HoldPosition;
         }
 
         public void Step(DeliveryGame game, Vector3 acceleration)
@@ -37,14 +40,14 @@ namespace RiskyDelivery
             Vector2 slipForce = load.magnitude > 3.5f ? load.normalized * (load.magnitude - 3.5f) * 0.35f : Vector2.zero;
             velocity += (slipForce - velocity * 1.8f - offset * 0.8f) * dt;
             offset += velocity * dt;
-            cargo.localPosition = new Vector3(offset.x, 0.325f, offset.y);
+            cargo.localPosition = HoldPosition + cargo.parent.InverseTransformDirection(new Vector3(offset.x, 0, offset.y));
             if (Risk < 1) return;
             HasFallen = true;
             dropped = Object.Instantiate(cargo.gameObject, cargo.position, cargo.rotation);
             dropped.name = "Fallen parcel";
             var collider = dropped.AddComponent<BoxCollider>();
-            collider.center = Vector3.up * 0.575f;
-            collider.size = new Vector3(1.1f, 1.15f, 1.1f);
+            collider.center = ParcelCenter;
+            collider.size = ParcelSize;
             var body = dropped.AddComponent<Rigidbody>();
             FallenBody = body;
             body.mass = 0.7f;

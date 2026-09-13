@@ -30,6 +30,8 @@ namespace RiskyDelivery
         public Vector3 Destination => new Vector3(0, 0, 25);
         private Transform cargo;
         private Camera followCamera;
+        private CourierVisual courier;
+        private static readonly Vector3 CameraOffset = new Vector3(2.6f, 3.2f, -5.8f);
         private Vector2 input, tilt, tiltVelocity;
         private Vector3 previousVelocity;
         private bool braking;
@@ -63,7 +65,7 @@ namespace RiskyDelivery
             Night.SetActive(Chapter == 5);
             flatCartCollider.enabled = Chapter != 4;
             foreach (var runner in hillCartColliders) runner.enabled = Chapter == 4;
-            sun.intensity = Chapter == 5 ? 0.16f : Chapter == 3 ? 0.85f : 1.2f;
+            sun.intensity = Chapter == 5 ? 0.16f : Chapter == 3 ? 0.65f : 0.9f;
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = Chapter == 5 ? new Color(0.14f, 0.19f, 0.3f) : Chapter == 3 ? new Color(0.5f, 0.62f, 0.75f) : new Color(0.65f, 0.72f, 0.82f);
             RenderSettings.fog = Chapter == 3 || Chapter == 5;
@@ -112,7 +114,8 @@ namespace RiskyDelivery
             Cart.position = new Vector3(0, 0.5f, -12);
             Cart.linearVelocity = Cart.angularVelocity = Vector3.zero;
             cargo.localRotation = Quaternion.identity;
-            followCamera.transform.position = Cart.position + new Vector3(0, 14, -11);
+            courier.Reset();
+            followCamera.transform.position = Cart.position + CameraOffset;
         }
 
         public void SetControls(Vector2 direction, bool brake)
@@ -127,8 +130,9 @@ namespace RiskyDelivery
             if (!Automated) ReadPlayerInput();
             if (View == ViewMode.Driving && State == RunState.Playing) Elapsed += Time.deltaTime;
             impactFlash = Mathf.Max(0, impactFlash - Time.deltaTime);
-            parcelMaterial.color = impactFlash > 0 ? new Color(1, 0.18f, 0.12f) : Color.Lerp(new Color(0.6f, 0.18f, 0.1f), new Color(1, 0.7f, 0.19f), CargoHealth / 100f);
+            parcelMaterial.color = impactFlash > 0 ? new Color(1, 0.18f, 0.12f) : Color.Lerp(new Color(0.45f, 0.2f, 0.1f), new Color(0.73f, 0.49f, 0.26f), CargoHealth / 100f);
             cargo.localRotation = Quaternion.Euler(tilt.y, 0, -tilt.x);
+            courier.Tick(Cart.linearVelocity, View == ViewMode.Driving ? Time.deltaTime : 0);
             Sound.Tick(new Vector2(Cart.linearVelocity.x, Cart.linearVelocity.z).magnitude, View == ViewMode.Driving && State == RunState.Playing);
         }
 
@@ -180,8 +184,9 @@ namespace RiskyDelivery
 
         private void LateUpdate()
         {
-            Vector3 target = Cart.position + new Vector3(0, 14, -11);
+            Vector3 target = Cart.position + CameraOffset;
             followCamera.transform.position = Vector3.Lerp(followCamera.transform.position, target, 1 - Mathf.Exp(-7 * Time.deltaTime));
+            followCamera.transform.LookAt(Cart.position + new Vector3(0, 1.1f, 1.2f));
         }
 
 

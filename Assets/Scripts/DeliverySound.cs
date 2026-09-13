@@ -28,7 +28,10 @@ namespace RiskyDelivery
             delivered = Tone("Delivery chime", 0.48f, t => Note(t, 0.16f, deliveryNotes));
             failed = Tone("Delivery failed", 0.5f, t => Mathf.Sin(2 * Mathf.PI * (250 * t - 150 * t * t)) * 0.14f);
             campaign = Tone("Campaign complete", 0.8f, t => Note(t, 0.2f, campaignNotes));
-            roll = Tone("Cart rolling", 1, t => (Mathf.Sin(t * 2 * Mathf.PI * 45) + Mathf.Sin(t * 2 * Mathf.PI * 90) * 0.2f) * 0.06f, false);
+            roll = Tone("Courier footsteps", 1, t => {
+                float step = Mathf.Repeat(t, 0.5f);
+                return Mathf.Sin(step * 2 * Mathf.PI * 95) * Mathf.Exp(-step * 45) * Mathf.Clamp01(step / 0.008f) * 0.3f;
+            }, false);
             rolling.clip = roll;
             rolling.loop = true;
             SetEnabled(soundEnabled);

@@ -19,6 +19,27 @@ namespace RiskyDelivery
                 new GameObject("Delivery smoke test").AddComponent<DeliverySmokeTest>();
         }
 
+        private IEnumerator CheckCourierView()
+        {
+            game.StartChapter(1);
+            var rig = game.Cart.transform.Find("Courier facing");
+            Check(rig != null && !game.Cart.GetComponentInChildren<MeshRenderer>().enabled, "Visible cart is replaced by courier rig");
+            var parcel = rig.Find("Cargo balance pivot");
+            Check(parcel != null && parcel.localPosition == CargoBalance.HoldPosition, "Parcel is carried in front of the courier");
+            game.SetControls(Vector2.right, true);
+            yield return new WaitForSeconds(0.8f);
+            Check(Vector3.Dot(rig.forward, Vector3.right) > 0.9f, "Courier turns toward actual movement");
+            Check(Vector3.Dot(parcel.position - rig.position, rig.forward) > 0.5f, "Carried parcel follows the courier's facing");
+            Check(!Camera.main.orthographic && Camera.main.transform.position.z < game.Cart.position.z - 4, "Perspective third-person camera follows behind courier");
+            var leg = rig.Find("Walking leg");
+            Quaternion pose = leg.localRotation;
+            yield return new WaitForSeconds(0.15f);
+            Check(Quaternion.Angle(pose, leg.localRotation) > 1, "Walking animation responds to movement");
+            game.Restart();
+            Check(rig.localRotation == Quaternion.identity && parcel.localPosition == CargoBalance.HoldPosition, "Restart restores courier and held parcel");
+            Debug.Log("RISKY_CHECK_OK: third-person camera, courier facing, walk animation and held parcel");
+        }
+
         private IEnumerator Start()
         {
             Application.logMessageReceived += OnLog;
@@ -29,6 +50,7 @@ namespace RiskyDelivery
             ProgressSmokeTests.Run(Check);
             Check(game.Progress.CompletedCount == 0, "Automated gameplay has an isolated empty profile");
             Time.timeScale = 3; // Keep the same fixed physics timestep, run the test faster.
+            yield return CheckCourierView();
             yield return CheckSessionFlow();
             game.StartChapter(1);
             Check(!game.TryNextChapter(), "Cannot advance before delivery");

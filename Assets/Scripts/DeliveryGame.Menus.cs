@@ -43,7 +43,7 @@ namespace RiskyDelivery
                 if (MenuButton(new Rect(76, 379, 430, 42), "VIEW CAMPAIGN RESULTS")) ShowCampaignSummary();
             }
             else GUI.Label(new Rect(76, 380, 430, 48), Progress.Notice.Length > 0 ? Progress.Notice : "Your best results are saved automatically.", smallStyle);
-            GUI.Label(new Rect(76, 442, 440, 90), "WASD / ARROWS   Move\nSPACE   Brake / drive slowly\nR   Retry your delivery\nESC   Pause / return to menu", smallStyle);
+            GUI.Label(new Rect(76, 442, 440, 90), "WASD / ARROWS   Move\nSPACE   Slow down / steady your grip\nR   Retry your delivery\nESC   Pause / return to menu", smallStyle);
             if (MenuButton(new Rect(76, 548, 206, 48), Progress.SoundEnabled ? "SOUND ON  [M]" : "SOUND OFF  [M]")) ToggleSound();
             if (MenuButton(new Rect(300, 548, 206, 48), "QUIT GAME")) Application.Quit();
             GUI.Label(new Rect(590, 90, 450, 48), "CHOOSE A DELIVERY", titleStyle);

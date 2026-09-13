@@ -13,7 +13,7 @@ namespace RiskyDelivery.Editor
         {
             PlayerSettings.companyName = "RiskyDelivery";
             PlayerSettings.productName = "Risky Delivery";
-            PlayerSettings.bundleVersion = "0.1.0";
+            PlayerSettings.bundleVersion = "0.2.0";
             PlayerSettings.defaultScreenWidth = 1280;
             PlayerSettings.defaultScreenHeight = 800;
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;

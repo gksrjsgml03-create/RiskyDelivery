@@ -34,6 +34,13 @@ namespace RiskyDelivery
             game.ToggleSound();
             yield return Capture("sound-muted");
             game.ToggleSound();
+            game.StartChapter(1);
+            game.SetControls(Vector2.right, true);
+            yield return new WaitForSeconds(0.8f);
+            yield return Capture("courier-carrying");
+            game.SetControls(Vector2.down, true);
+            yield return new WaitForSeconds(0.8f);
+            yield return Capture("courier-front");
             for (int chapter = 1; chapter <= DeliveryGame.ChapterCount; chapter++)
             {
                 game.StartChapter(chapter);

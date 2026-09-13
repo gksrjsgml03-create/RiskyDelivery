@@ -30,7 +30,7 @@ namespace RiskyDelivery
             root = new GameObject("Chapter 5 - Night shift");
             for (int i = 0; i < vehicles.Length; i++)
             {
-                var vehicle = new GameObject("Crossing warehouse tug " + (i + 1));
+                var vehicle = new GameObject("Crossing neighborhood car " + (i + 1));
                 vehicle.transform.SetParent(root.transform, false);
                 var collider = vehicle.AddComponent<BoxCollider>();
                 collider.center = new Vector3(0, 0.6f, 0);
@@ -42,11 +42,21 @@ namespace RiskyDelivery
                 body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
                 vehicles[i] = body;
                 Decoration(vehicle.transform, "Tug body", new Vector3(0, 0.55f, 0), new Vector3(2.4f, 0.7f, 1.6f), vehicleMaterial);
-                Decoration(vehicle.transform, "Driver cab", new Vector3(-0.4f, 1.15f, 0), new Vector3(0.9f, 0.65f, 1.2f), dark);
+                var glass = Mat(new Color(0.035f, 0.08f, 0.13f));
+                Decoration(vehicle.transform, "Passenger cabin", new Vector3(-0.1f, 1.05f, 0), new Vector3(1.2f, 0.65f, 1.25f), vehicleMaterial);
+                Decoration(vehicle.transform, "Front windshield", new Vector3(0.51f, 1.09f, 0), new Vector3(0.025f, 0.4f, 1.08f), glass);
+                Decoration(vehicle.transform, "Rear windshield", new Vector3(-0.71f, 1.09f, 0), new Vector3(0.025f, 0.4f, 1.08f), glass);
+                var rubber = Mat(new Color(0.025f, 0.028f, 0.035f));
                 foreach (int side in new[] { -1, 1 })
                 {
-                    Decoration(vehicle.transform, "Tug wheels", new Vector3(0, 0.22f, side * 0.78f), new Vector3(1.8f, 0.4f, 0.12f), dark);
-                    Decoration(vehicle.transform, "Reflective tug stripe", new Vector3(0, 0.65f, side * 0.81f), new Vector3(2.2f, 0.15f, 0.025f), marking);
+                    Decoration(vehicle.transform, "Side window", new Vector3(-0.1f, 1.1f, side * 0.634f), new Vector3(1.05f, 0.38f, 0.02f), glass);
+                    Decoration(vehicle.transform, "Window pillar", new Vector3(-0.1f, 1.1f, side * 0.649f), new Vector3(0.07f, 0.41f, 0.025f), vehicleMaterial);
+                    foreach (int axle in new[] { -1, 1 })
+                    {
+                        Decoration(vehicle.transform, "Car tire", new Vector3(axle * 0.8f, 0.28f, side * 0.78f), new Vector3(0.5f, 0.5f, 0.18f), rubber);
+                        Decoration(vehicle.transform, "Wheel hub", new Vector3(axle * 0.8f, 0.28f, side * 0.88f), new Vector3(0.22f, 0.22f, 0.025f), marking);
+                        Decoration(vehicle.transform, "Car headlamp", new Vector3(axle * 1.21f, 0.65f, side * 0.53f), new Vector3(0.025f, 0.22f, 0.35f), lampMaterial);
+                    }
                 }
                 signals[i] = new Material(lampMaterial);
                 signals[i].EnableKeyword("_EMISSION");

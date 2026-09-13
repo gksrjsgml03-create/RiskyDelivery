@@ -15,31 +15,28 @@ namespace RiskyDelivery
             sun.intensity = 1.2f;
             sun.shadows = LightShadows.Soft;
             sun.transform.rotation = Quaternion.Euler(45, -35, 0);
-            var road = Mat(new Color(0.17f, 0.22f, 0.29f));
-            var grass = Mat(new Color(0.21f, 0.43f, 0.36f));
+            var road = Asphalt();
+            var grass = Mat(new Color(0.09f, 0.12f, 0.12f));
             var white = Mat(new Color(0.94f, 0.93f, 0.82f));
             var yellow = Mat(new Color(1f, 0.7f, 0.19f));
             var teal = Mat(new Color(0.12f, 0.85f, 0.72f));
+            var curb = Mat(new Color(0.24f, 0.25f, 0.26f));
             Box("Ground", new Vector3(0, -0.8f, 8), new Vector3(70, 1, 90), grass);
             Box("Delivery road", new Vector3(0, -0.15f, 8), new Vector3(14, 0.3f, 52), road);
-            Barrier("Left barrier", new Vector3(-7.3f, 0.35f, 8), new Vector3(0.5f, 0.7f, 52), white);
-            Barrier("Right barrier", new Vector3(7.3f, 0.35f, 8), new Vector3(0.5f, 0.7f, 52), white);
-            Barrier("Start barrier", new Vector3(0, 0.35f, -18), new Vector3(15, 0.7f, 0.5f), white);
-            Barrier("End barrier", new Vector3(0, 0.35f, 34), new Vector3(15, 0.7f, 0.5f), white);
+            Barrier("Left barrier", new Vector3(-7.3f, 0.35f, 8), new Vector3(0.5f, 0.7f, 52), curb);
+            Barrier("Right barrier", new Vector3(7.3f, 0.35f, 8), new Vector3(0.5f, 0.7f, 52), curb);
+            Barrier("Start barrier", new Vector3(0, 0.35f, -18), new Vector3(15, 0.7f, 0.5f), curb);
+            Barrier("End barrier", new Vector3(0, 0.35f, 34), new Vector3(15, 0.7f, 0.5f), curb);
             for (int z = -15; z < 32; z += 4)
                 Box("Lane marking", new Vector3(0, 0.015f, z), new Vector3(0.12f, 0.02f, 1.5f), white, false);
-            Box("Depot", new Vector3(0, 0.025f, -12), new Vector3(6, 0.04f, 5), yellow, false);
-            Box("Delivery zone", Destination + Vector3.up * 0.035f, new Vector3(6, 0.05f, 5), teal, false);
-            for (int i = 0; i < 9; i++)
+            foreach (int side in new[] { -1, 1 })
             {
-                float height = 2 + (i % 3) * 1.5f;
-                var facade = Mat(Color.Lerp(new Color(0.3f, 0.42f, 0.52f), new Color(0.67f, 0.47f, 0.34f), (i % 4) / 3f));
-                foreach (int side in new[] { -1, 1 })
-                {
-                    Box("Warehouse", new Vector3(side * 12, height / 2, -12 + i * 5.5f), new Vector3(6, height, 4), facade);
-                    Box("Warehouse door", new Vector3(side * 8.95f, 0.85f, -12 + i * 5.5f), new Vector3(0.05f, 1.7f, 1.7f), white, false);
-                }
+                Box("Depot parking outline", new Vector3(side * 3, 0.025f, -12), new Vector3(0.12f, 0.02f, 5), yellow, false);
+                Box("Depot parking outline", new Vector3(0, 0.025f, -12 + side * 2.5f), new Vector3(6, 0.02f, 0.12f), yellow, false);
+                Box("Delivery zone outline", Destination + new Vector3(side * 3, 0.035f, 0), new Vector3(0.18f, 0.025f, 5), teal, false);
+                Box("Delivery zone outline", Destination + new Vector3(0, 0.035f, side * 2.5f), new Vector3(6, 0.025f, 0.18f), teal, false);
             }
+            ResidentialStreet.Create();
             roadworks = new GameObject("Chapter 2 - Roadworks");
             var orange = Mat(new Color(1f, 0.32f, 0.12f));
             for (int i = 0; i < 3; i++)
@@ -90,10 +87,11 @@ namespace RiskyDelivery
                 guide.transform.SetParent(rainCourse.transform);
             }
             hillCourse = HillRoad.Create(road, yellow, teal);
-            var cartObject = new GameObject("Delivery cart");
+            var cartObject = new GameObject("Courier physics body");
             cartObject.AddComponent<CartImpactReceiver>().Game = this;
             var body = Box("Cart body", Vector3.zero, new Vector3(1.5f, 0.65f, 2), teal);
             body.transform.SetParent(cartObject.transform, false);
+            body.GetComponent<Renderer>().enabled = false;
             // The cart rolls; default box friction otherwise nearly cancels its motor force.
             cartFriction = new PhysicsMaterial("Cart rolling friction")
             {
@@ -121,29 +119,37 @@ namespace RiskyDelivery
             Cart.constraints = RigidbodyConstraints.FreezeRotation;
             Cart.interpolation = RigidbodyInterpolation.Interpolate;
             Cart.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            courier = new CourierVisual(cartObject.transform);
             var rain = new GameObject("Rain around courier");
             rain.transform.SetParent(rainCourse.transform);
             rain.AddComponent<RainWeather>().Initialize(Cart.transform, reflection);
             cargo = new GameObject("Cargo balance pivot").transform;
-            cargo.SetParent(cartObject.transform, false);
-            cargo.localPosition = new Vector3(0, 0.325f, 0);
+            cargo.SetParent(courier.Root, false);
+            cargo.localPosition = CargoBalance.HoldPosition;
+            cargo.localScale = Vector3.one * 0.82f;
             parcelMaterial = Mat(new Color(1f, 0.7f, 0.19f));
-            var parcel = Box("Fragile parcel", Vector3.zero, new Vector3(1.1f, 1.15f, 1.1f), parcelMaterial, false);
+            var parcel = Box("Fragile parcel", Vector3.zero, CargoBalance.ParcelSize, parcelMaterial, false);
             parcel.transform.SetParent(cargo, false);
-            parcel.transform.localPosition = Vector3.up * 0.575f;
-            var tape = Box("Parcel tape", Vector3.zero, new Vector3(0.18f, 1.17f, 1.12f), white, false);
+            parcel.transform.localPosition = CargoBalance.ParcelCenter;
+            var tape = Box("Parcel tape", Vector3.zero, new Vector3(0.18f, 0.88f, 1.12f), white, false);
             tape.transform.SetParent(cargo, false);
-            tape.transform.localPosition = Vector3.up * 0.575f;
+            tape.transform.localPosition = CargoBalance.ParcelCenter;
+            Decoration(cargo, "Shipping label", new Vector3(0, 0.49f, 0.56f), new Vector3(0.48f, 0.38f, 0.015f), white);
+            var ink = Mat(new Color(0.12f, 0.09f, 0.06f));
+            for (int bar = 0; bar < 11; bar++)
+                Decoration(cargo, "Parcel barcode", new Vector3(-0.18f + bar * 0.035f, 0.44f, 0.573f), new Vector3(bar % 3 == 0 ? 0.022f : 0.01f, 0.17f, 0.008f), ink);
             Balance = new CargoBalance(cargo);
-            Night = new NightTraffic(Cart.transform, orange, road, white, yellow);
+            Night = new NightTraffic(courier.Root, orange, road, white, yellow);
             followCamera = new GameObject("Follow camera").AddComponent<Camera>();
             followCamera.tag = "MainCamera";
             followCamera.gameObject.AddComponent<AudioListener>();
-            followCamera.orthographic = true;
-            followCamera.orthographicSize = 10;
+            followCamera.orthographic = false;
+            followCamera.fieldOfView = 62;
+            followCamera.nearClipPlane = 0.15f;
+            followCamera.farClipPlane = 130;
             followCamera.backgroundColor = new Color(0.11f, 0.16f, 0.23f);
             followCamera.clearFlags = CameraClearFlags.SolidColor;
-            followCamera.transform.rotation = Quaternion.Euler(52, 0, 0);
+            followCamera.transform.rotation = Quaternion.Euler(23, 0, 0);
         }
 
     }
