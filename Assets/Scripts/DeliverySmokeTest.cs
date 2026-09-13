@@ -120,6 +120,9 @@ namespace RiskyDelivery
             game.Restart();
             CheckReset();
             Check(game.Chapter == 3 && !game.OnWetRoad, "Rain retry starts on dry ground");
+            // Reproduce out-of-order saved clears: finishing route 3 fills the last missing record.
+            game.Progress.Record(4, 3, 60);
+            game.Progress.Record(5, 3, 60);
             Vector2[] rainRoute = {
                 new Vector2(3.8f, -10), new Vector2(3.8f, 6.5f),
                 new Vector2(-3.8f, 6.5f), new Vector2(-3.8f, 23), new Vector2(0, 25)
@@ -129,7 +132,8 @@ namespace RiskyDelivery
             yield return Until(() => game.State == DeliveryGame.RunState.Delivered, 3, "Rain delivery");
             Check(crossedWet && crossedDry, "Rain route crosses wet and dry surfaces");
             Check(game.CargoHealth == 100 && game.Rating == 3, "Rain route can be completed without damage");
-            Check(game.TryNextChapter() && game.Chapter == 4, "Advance from rain to hill delivery");
+            Check(game.Progress.IsComplete && game.View == DeliveryGame.ViewMode.Driving, "Completing saved records on route 3 does not end the campaign");
+            Check(game.TryNextChapter() && game.Chapter == 4, "Advance from rain to hill delivery even with prior route 4 and 5 records");
             CheckReset();
             game.SetControls(Vector2.up, true);
             yield return Until(() => game.Cart.position.z > 5, 15, "Climb actual ramp at safe speed");

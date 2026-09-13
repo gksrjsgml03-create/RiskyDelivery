@@ -166,12 +166,12 @@ namespace RiskyDelivery
 
         private void CompleteDelivery()
         {
-            bool alreadyComplete = Progress.IsComplete;
             State = RunState.Delivered;
             Cart.linearVelocity = Vector3.zero;
             Progress.Record(Chapter, Rating, Mathf.Max(0.01f, Elapsed));
-            if (!alreadyComplete && Progress.IsComplete) View = ViewMode.CampaignComplete;
-            Sound.Delivered(!alreadyComplete && Progress.IsComplete);
+            bool finalChapter = Chapter == ChapterCount;
+            if (finalChapter) View = ViewMode.CampaignComplete;
+            Sound.Delivered(finalChapter);
         }
 
         public void FailCargoDrop()

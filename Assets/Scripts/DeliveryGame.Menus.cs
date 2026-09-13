@@ -74,8 +74,8 @@ namespace RiskyDelivery
         {
             Fill(new Rect(80, 55, 940, 565), new Color(0.04f, 0.08f, 0.13f));
             Fill(new Rect(80, 55, 940, 6), Teal);
-            GUI.Label(new Rect(120, 84, 850, 48), "ALL DELIVERIES COMPLETE!", titleStyle);
-            GUI.Label(new Rect(120, 143, 850, 48), $"Five routes. Every parcel delivered.   /   {Progress.TotalStars}/{ChapterCount * 3} stars", textStyle);
+            GUI.Label(new Rect(120, 84, 850, 48), Progress.IsComplete ? "ALL DELIVERIES COMPLETE!" : "FINAL DELIVERY COMPLETE!", titleStyle);
+            GUI.Label(new Rect(120, 143, 850, 48), $"Recorded routes: {Progress.CompletedCount}/{ChapterCount}   /   {Progress.TotalStars}/{ChapterCount * 3} stars", textStyle);
             for (int chapter = 1; chapter <= ChapterCount; chapter++)
             {
                 float y = 213 + (chapter - 1) * 50;
