@@ -12,7 +12,39 @@ concurrency:
   group: release-${{ inputs.tag }}
   cancel-in-progress: false
 jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # GitHub requires write access to read draft releases.
+    outputs:
+      release_id: ${{ steps.draft.outputs.release_id }}
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Download draft without running game code
+        id: draft
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid release tag.' }
+          $releases = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot list draft releases.' }
+          $draft = @($releases | Where-Object { $_.tag_name -ceq $env:RELEASE_TAG -and $_.draft })
+          if ($draft.Count -ne 1) { throw 'Expected exactly one draft.' }
+          "release_id=$($draft[0].id)" >> $env:GITHUB_OUTPUT
+          New-Item -ItemType Directory -Force Candidate | Out-Null
+          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --dir Candidate --pattern "RiskyDelivery-$($env:RELEASE_TAG.Substring(1))-Windows.zip*"
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate download failed.' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: candidate-${{ inputs.tag }}
+          path: Candidate/*
+          retention-days: 1
+          if-no-files-found: error
   validate:
+    needs: download
     runs-on: windows-latest
     timeout-minutes: 15
     outputs:
@@ -33,15 +65,11 @@ jobs:
       - name: Secret scan
         shell: pwsh
         run: ./Tools/Test-Secrets.ps1
-      - name: Download draft candidate
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $version = $env:RELEASE_TAG.Substring(1)
-          New-Item -ItemType Directory -Force Builds/Candidate | Out-Null
-          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --dir Builds/Candidate --pattern "RiskyDelivery-$version-Windows.zip*"
-          if ($LASTEXITCODE -ne 0) { throw 'Candidate download failed.' }
+      - name: Receive candidate with read-only repository permissions
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: candidate-${{ inputs.tag }}
+          path: Builds/Candidate
       - name: Verify archive and run all five chapters on a fresh Windows machine
         shell: pwsh
         run: |
@@ -64,7 +92,7 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
   publish:
-    needs: validate
+    needs: [download, validate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -73,13 +101,14 @@ jobs:
       RELEASE_TAG: ${{ inputs.tag }}
       ZIP_HASH: ${{ needs.validate.outputs.zip_hash }}
       CHECKSUM_HASH: ${{ needs.validate.outputs.checksum_hash }}
+      RELEASE_ID: ${{ needs.download.outputs.release_id }}
     steps:
       - name: Publish exactly the validated draft assets
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:RELEASE_TAG" | ConvertFrom-Json
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/$env:RELEASE_ID" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or !$release.draft -or $release.assets.Count -ne 2) { throw 'Expected a draft with exactly two candidate assets.' }
           $name = "RiskyDelivery-$($env:RELEASE_TAG.Substring(1))-Windows.zip"
           $zip = @($release.assets | Where-Object name -CEQ $name)
