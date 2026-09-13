@@ -28,6 +28,9 @@ namespace RiskyDelivery
             game.Automated = true;
             while (!SplashScreen.isFinished) yield return null;
             Directory.CreateDirectory(outputDirectory);
+            game.ShowTitle();
+            yield return new WaitForSecondsRealtime(0.2f);
+            yield return Capture("title");
             for (int chapter = 1; chapter <= DeliveryGame.ChapterCount; chapter++)
             {
                 game.StartChapter(chapter);
@@ -37,6 +40,10 @@ namespace RiskyDelivery
                 yield return new WaitForSeconds(0.8f);
                 yield return Capture("chapter" + chapter);
             }
+            game.Pause();
+            yield return new WaitForSecondsRealtime(0.2f);
+            yield return Capture("paused");
+            game.Resume();
             while (game.Night.GetSignal(0) != NightTraffic.Signal.Amber) yield return null;
             yield return Capture("night-amber");
             while (game.Night.GetSignal(0) != NightTraffic.Signal.Red) yield return null;

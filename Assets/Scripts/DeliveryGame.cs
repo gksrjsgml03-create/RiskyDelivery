@@ -43,8 +43,11 @@ namespace RiskyDelivery
         private void Awake()
         {
             Application.targetFrameRate = 60;
+            string[] args = System.Environment.GetCommandLineArgs();
+            Automated = System.Array.IndexOf(args, "-risky-smoke-test") >= 0 || System.Array.IndexOf(args, "-risky-preview") >= 0;
             BuildWorld();
             StartChapter(1);
+            if (!Automated) ShowTitle();
         }
 
         public void StartChapter(int chapter)
@@ -69,7 +72,7 @@ namespace RiskyDelivery
 
         public bool TryNextChapter()
         {
-            if (State != RunState.Delivered || Chapter >= ChapterCount) return false;
+            if (View != ViewMode.Driving || State != RunState.Delivered || Chapter >= ChapterCount) return false;
             StartChapter(Chapter + 1);
             return true;
         }
@@ -77,7 +80,7 @@ namespace RiskyDelivery
         public void RegisterImpact(float normalSpeed)
         {
             // A scrape is measured along the contact normal, not total driving speed.
-            if (State != RunState.Playing || normalSpeed <= 2.5f || Time.time - lastImpactTime < 0.4f) return;
+            if (View != ViewMode.Driving || State != RunState.Playing || normalSpeed <= 2.5f || Time.time - lastImpactTime < 0.4f) return;
             lastImpactTime = Time.time;
             lastDamage = Mathf.Clamp(Mathf.RoundToInt((normalSpeed - 2.5f) * 12), 1, 65);
             CargoHealth = Mathf.Max(0, CargoHealth - lastDamage);
@@ -87,6 +90,7 @@ namespace RiskyDelivery
 
         public void Restart()
         {
+            RestorePlayTime();
             Balance.Reset();
             Night.Reset();
             State = RunState.Playing;
@@ -107,26 +111,15 @@ namespace RiskyDelivery
 
         public void SetControls(Vector2 direction, bool brake)
         {
+            if (View != ViewMode.Driving) return;
             input = Vector2.ClampMagnitude(direction, 1);
             braking = brake;
         }
 
         private void Update()
         {
-            if (!Automated)
-            {
-                if (Input.GetKeyDown(KeyCode.R)) Restart();
-                if (Input.GetKeyDown(KeyCode.Alpha1)) StartChapter(1);
-                if (Input.GetKeyDown(KeyCode.Alpha2)) StartChapter(2);
-                if (Input.GetKeyDown(KeyCode.Alpha3)) StartChapter(3);
-                if (Input.GetKeyDown(KeyCode.Alpha4)) StartChapter(4);
-                if (Input.GetKeyDown(KeyCode.Alpha5)) StartChapter(5);
-                if (Input.GetKeyDown(KeyCode.Return)) TryNextChapter();
-                SetControls(new Vector2(
-                    (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) ? 1 : 0) - (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow) ? 1 : 0),
-                    (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) ? 1 : 0) - (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? 1 : 0)), Input.GetKey(KeyCode.Space));
-            }
-            if (State == RunState.Playing) Elapsed += Time.deltaTime;
+            if (!Automated) ReadPlayerInput();
+            if (View == ViewMode.Driving && State == RunState.Playing) Elapsed += Time.deltaTime;
             impactFlash = Mathf.Max(0, impactFlash - Time.deltaTime);
             parcelMaterial.color = impactFlash > 0 ? new Color(1, 0.18f, 0.12f) : Color.Lerp(new Color(0.6f, 0.18f, 0.1f), new Color(1, 0.7f, 0.19f), CargoHealth / 100f);
             cargo.localRotation = Quaternion.Euler(tilt.y, 0, -tilt.x);
@@ -134,6 +127,7 @@ namespace RiskyDelivery
 
         private void FixedUpdate()
         {
+            if (View != ViewMode.Driving) return;
             if (State != RunState.Playing)
             {
                 Cart.linearVelocity = Vector3.zero;
@@ -152,7 +146,7 @@ namespace RiskyDelivery
             Vector3 acceleration = (horizontal - previousVelocity) / Time.fixedDeltaTime;
             previousVelocity = horizontal;
             Balance.Step(this, acceleration);
-            if (State != RunState.Playing) return;
+            if (View != ViewMode.Driving || State != RunState.Playing) return;
             Vector2 target = Vector2.ClampMagnitude(new Vector2(-acceleration.x, -acceleration.z) * 1.4f, 35);
             tilt = Vector2.SmoothDamp(tilt, target, ref tiltVelocity, 0.22f, Mathf.Infinity, Time.fixedDeltaTime);
             if (Mathf.Abs(Cart.position.x - Destination.x) < 2.5f && Mathf.Abs(Cart.position.z - Destination.z) < 2 && Mathf.Abs(Cart.position.y - 0.325f) < 0.3f && horizontal.magnitude < 1)
@@ -161,7 +155,7 @@ namespace RiskyDelivery
 
         public void FailCargoDrop()
         {
-            if (State != RunState.Playing) return;
+            if (View != ViewMode.Driving || State != RunState.Playing) return;
             CargoHealth = 0;
             State = RunState.Failed;
         }

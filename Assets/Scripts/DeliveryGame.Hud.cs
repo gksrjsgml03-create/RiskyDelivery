@@ -14,11 +14,20 @@ namespace RiskyDelivery
                 smallStyle = new GUIStyle(GUI.skin.label) { fontSize = 15 };
             }
             float scale = Mathf.Min(Screen.width / 1100f, Screen.height / 700f);
-            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one * scale);
+            GUI.matrix = Matrix4x4.identity;
+            if (View != ViewMode.Driving)
+                Fill(new Rect(0, 0, Screen.width, Screen.height), new Color(0.025f, 0.05f, 0.085f, View == ViewMode.Title ? 0.96f : 0.8f));
+            GUI.matrix = Matrix4x4.TRS(new Vector3((Screen.width - 1100 * scale) / 2, (Screen.height - 700 * scale) / 2, 0), Quaternion.identity, Vector3.one * scale);
+            if (View == ViewMode.Title) { DrawTitle(); return; }
+            if (View == ViewMode.Paused) { DrawPause(); return; }
             GUI.Box(new Rect(18, 18, 420, 146), GUIContent.none);
             GUI.Label(new Rect(34, 28, 400, 42), "RISKY DELIVERY", titleStyle);
             GUI.Label(new Rect(34, 72, 400, 30), $"{ChapterName}   /   {Elapsed:0.0}s", textStyle);
             GUI.Label(new Rect(34, 108, 400, 48), ChapterCatalog.Get(Chapter).Instructions, smallStyle);
+            if (GUI.Button(new Rect(18, 176, 150, 32), State == RunState.Playing ? "PAUSE  [ESC]" : "MENU  [ESC]"))
+            {
+                if (State == RunState.Playing) Pause(); else ShowTitle();
+            }
             GUI.Box(new Rect(18, 610, 660, 68), GUIContent.none);
             GUI.Label(new Rect(34, 620, 630, 28), "WASD / ARROWS  Move     SPACE  Brake     R  Restart", textStyle);
             GUI.Label(new Rect(34, 651, 620, 24), "Release movement keys to stop. Keep your parcel steady!", smallStyle);

@@ -27,6 +27,7 @@ namespace RiskyDelivery
             Check(game != null, "Game boots");
             game.Automated = true;
             Time.timeScale = 3; // Keep the same fixed physics timestep, run the test faster.
+            yield return CheckSessionFlow();
             game.StartChapter(1);
             Check(!game.TryNextChapter(), "Cannot advance before delivery");
             game.SetControls(Vector2.up, false);
@@ -191,6 +192,41 @@ namespace RiskyDelivery
             yield return new WaitForSeconds(0.1f);
             Check(game.Night.Clock == 0, "Inactive night traffic does not advance");
             Debug.Log("RISKY_CHECK_OK: night signal cycle, actual moving collision, safe crossings, night delivery, traffic reset/freeze and daylight restoration");
+        }
+
+        private IEnumerator CheckSessionFlow()
+        {
+            game.StartChapter(5);
+            game.SetControls(Vector2.up, true);
+            yield return Until(() => game.Cart.position.z > -10, 3, "Drive before pausing");
+            // Pause from the rendered frame, just like keyboard/UI input, after the physics step completes.
+            yield return null;
+            game.Pause();
+            Vector3 position = game.Cart.position, velocity = game.Cart.linearVelocity;
+            float elapsed = game.Elapsed, trafficClock = game.Night.Clock;
+            Check(game.View == DeliveryGame.ViewMode.Paused && Time.timeScale == 0, "Pause freezes simulation time");
+            game.SetControls(Vector2.right, false);
+            game.RegisterImpact(12);
+            game.FailCargoDrop();
+            yield return new WaitForSecondsRealtime(0.2f);
+            Check(game.Cart.position == position && game.Cart.linearVelocity == velocity && game.Elapsed == elapsed && game.Night.Clock == trafficClock && game.CargoHealth == 100, "Paused cart, traffic, timer and cargo do not change");
+            game.Resume();
+            Check(game.View == DeliveryGame.ViewMode.Driving && Time.timeScale == 3, "Resume restores previous simulation speed");
+            game.SetControls(Vector2.up, true);
+            yield return new WaitForSeconds(0.4f);
+            Check(game.Cart.position.z > position.z, "Resumed cart moves again");
+            game.Pause();
+            game.Restart();
+            CheckReset();
+            Check(game.View == DeliveryGame.ViewMode.Driving && Time.timeScale == 3, "Retry from pause restores play");
+            game.ShowTitle();
+            game.SetControls(Vector2.up, false);
+            yield return new WaitForSecondsRealtime(0.1f);
+            Check(game.View == DeliveryGame.ViewMode.Title && game.Elapsed == 0 && game.Cart.position.z == -12, "Title menu does not advance a run");
+            game.StartChapter(2);
+            CheckReset();
+            Check(game.View == DeliveryGame.ViewMode.Driving && Time.timeScale == 3 && game.Chapter == 2, "Title chapter selection starts a clean run");
+            Debug.Log("RISKY_CHECK_OK: title, pause, frozen physics and input, resume, retry and chapter navigation");
         }
 
         private IEnumerator MeasureBraking(int chapter)
