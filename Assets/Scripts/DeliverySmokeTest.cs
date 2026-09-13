@@ -26,6 +26,8 @@ namespace RiskyDelivery
             game = FindFirstObjectByType<DeliveryGame>();
             Check(game != null, "Game boots");
             game.Automated = true;
+            ProgressSmokeTests.Run(Check);
+            Check(game.Progress.CompletedCount == 0, "Automated gameplay has an isolated empty profile");
             Time.timeScale = 3; // Keep the same fixed physics timestep, run the test faster.
             yield return CheckSessionFlow();
             game.StartChapter(1);
@@ -36,6 +38,7 @@ namespace RiskyDelivery
             game.SetControls(Vector2.zero, true);
             yield return Until(() => game.State == DeliveryGame.RunState.Delivered, 3, "Training delivery");
             Check(game.CargoHealth == 100 && game.Rating == 3, "Undamaged delivery rating");
+            Check(game.Progress.BestStars(1) == 3 && game.Progress.NextChapter == 2, "Successful delivery updates campaign records");
             Check(game.TryNextChapter() && game.Chapter == 2, "Advance to roadworks");
             CheckReset();
             Debug.Log("RISKY_CHECK_OK: training, stop-to-deliver, chapter progression");
@@ -59,6 +62,7 @@ namespace RiskyDelivery
             game.SetControls(Vector2.up, false);
             yield return Until(() => game.State == DeliveryGame.RunState.Failed, 6, "Repeated hard collision breaks parcel");
             Check(game.CargoHealth == 0 && game.Rating == 0, "Failed parcel cannot earn a rating");
+            Check(game.Progress.BestStars(2) == 0, "Failed runs do not unlock a completed record");
             game.Cart.position = game.Destination + Vector3.up * 0.4f;
             game.SetControls(Vector2.zero, true);
             yield return new WaitForSeconds(0.5f);
@@ -180,6 +184,7 @@ namespace RiskyDelivery
             game.SetControls(Vector2.zero, true);
             yield return Until(() => game.State == DeliveryGame.RunState.Delivered, 3, "Night delivery");
             Check(game.Rating == 3 && game.CargoHealth == 100 && game.Night.NextCrossing(game.Cart.position.z) == -1, "Night has a complete safe route");
+            Check(game.Progress.IsComplete && game.Progress.TotalStars == 15 && game.View == DeliveryGame.ViewMode.CampaignComplete, "Actual five-route completion opens campaign results");
             Check(!game.TryNextChapter(), "No nonexistent sixth chapter");
             float stoppedClock = game.Night.Clock;
             Vector3 stoppedVehicle = game.Night.VehiclePosition(0);

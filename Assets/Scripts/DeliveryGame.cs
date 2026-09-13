@@ -14,6 +14,7 @@ namespace RiskyDelivery
         public static int ChapterCount => ChapterCatalog.Count;
         public CargoBalance Balance { get; private set; }
         public NightTraffic Night { get; private set; }
+        public DeliveryProgress Progress { get; private set; }
         private GameObject roadworks, rainCourse, hillCourse;
         private Light sun;
         private PhysicsMaterial cartFriction;
@@ -45,6 +46,7 @@ namespace RiskyDelivery
             Application.targetFrameRate = 60;
             string[] args = System.Environment.GetCommandLineArgs();
             Automated = System.Array.IndexOf(args, "-risky-smoke-test") >= 0 || System.Array.IndexOf(args, "-risky-preview") >= 0;
+            Progress = new DeliveryProgress(Automated ? null : System.IO.Path.Combine(Application.persistentDataPath, "progress.json"));
             BuildWorld();
             StartChapter(1);
             if (!Automated) ShowTitle();
@@ -127,12 +129,12 @@ namespace RiskyDelivery
 
         private void FixedUpdate()
         {
-            if (View != ViewMode.Driving) return;
             if (State != RunState.Playing)
             {
                 Cart.linearVelocity = Vector3.zero;
                 return;
             }
+            if (View != ViewMode.Driving) return;
             Vector3 horizontal = new Vector3(Cart.linearVelocity.x, 0, Cart.linearVelocity.z);
             Night.Step(Time.fixedDeltaTime);
             Vector3 desired = new Vector3(input.x, 0, input.y) * (braking ? 2 : 8);
@@ -150,7 +152,16 @@ namespace RiskyDelivery
             Vector2 target = Vector2.ClampMagnitude(new Vector2(-acceleration.x, -acceleration.z) * 1.4f, 35);
             tilt = Vector2.SmoothDamp(tilt, target, ref tiltVelocity, 0.22f, Mathf.Infinity, Time.fixedDeltaTime);
             if (Mathf.Abs(Cart.position.x - Destination.x) < 2.5f && Mathf.Abs(Cart.position.z - Destination.z) < 2 && Mathf.Abs(Cart.position.y - 0.325f) < 0.3f && horizontal.magnitude < 1)
-                State = RunState.Delivered;
+                CompleteDelivery();
+        }
+
+        private void CompleteDelivery()
+        {
+            bool alreadyComplete = Progress.IsComplete;
+            State = RunState.Delivered;
+            Cart.linearVelocity = Vector3.zero;
+            Progress.Record(Chapter, Rating, Mathf.Max(0.01f, Elapsed));
+            if (!alreadyComplete && Progress.IsComplete) View = ViewMode.CampaignComplete;
         }
 
         public void FailCargoDrop()

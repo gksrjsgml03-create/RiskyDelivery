@@ -4,11 +4,12 @@ namespace RiskyDelivery
 {
     public sealed partial class DeliveryGame
     {
-        public enum ViewMode { Driving, Title, Paused }
+        public enum ViewMode { Driving, Title, Paused, CampaignComplete }
         public ViewMode View { get; private set; }
         private float runningTimeScale = 1;
 
         public void ShowTitle() => Freeze(ViewMode.Title);
+        public void ShowCampaignSummary() { if (Progress.IsComplete) View = ViewMode.CampaignComplete; }
 
         public void Pause()
         {
@@ -41,7 +42,12 @@ namespace RiskyDelivery
             {
                 if (View == ViewMode.Paused) Resume();
                 else if (View == ViewMode.Driving && State == RunState.Playing) Pause();
-                else if (View == ViewMode.Driving) ShowTitle();
+                else if (View == ViewMode.Driving || View == ViewMode.CampaignComplete) ShowTitle();
+            }
+            if (View == ViewMode.CampaignComplete)
+            {
+                if (Input.GetKeyDown(KeyCode.Return)) ShowTitle();
+                return;
             }
             if (View == ViewMode.Paused)
             {
@@ -52,7 +58,7 @@ namespace RiskyDelivery
                 if (Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1 + chapter - 1))) StartChapter(chapter);
             if (View == ViewMode.Title)
             {
-                if (Input.GetKeyDown(KeyCode.Return)) StartChapter(1);
+                if (Input.GetKeyDown(KeyCode.Return)) StartChapter(Progress.NextChapter);
                 return;
             }
             if (Input.GetKeyDown(KeyCode.R)) Restart();

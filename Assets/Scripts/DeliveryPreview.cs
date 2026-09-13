@@ -66,6 +66,12 @@ namespace RiskyDelivery
             if (!game.Balance.HasFallen) throw new InvalidOperationException("Preview expected cargo to fall during an abrupt reversal");
             yield return new WaitForSeconds(0.5f);
             yield return Capture("cargo-fallen");
+            // Visual-only sample records use the automation profile, never the user's save file.
+            for (int chapter = 1; chapter <= DeliveryGame.ChapterCount; chapter++) game.Progress.Record(chapter, 3, 25 + chapter * 5);
+            game.ShowCampaignSummary();
+            yield return Capture("campaign-complete");
+            game.ShowTitle();
+            yield return Capture("title-records");
             Debug.Log("RISKY_DELIVERY_PREVIEW_OK");
             Application.Quit(0);
         }

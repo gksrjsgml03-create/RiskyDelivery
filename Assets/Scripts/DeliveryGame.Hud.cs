@@ -20,6 +20,7 @@ namespace RiskyDelivery
             GUI.matrix = Matrix4x4.TRS(new Vector3((Screen.width - 1100 * scale) / 2, (Screen.height - 700 * scale) / 2, 0), Quaternion.identity, Vector3.one * scale);
             if (View == ViewMode.Title) { DrawTitle(); return; }
             if (View == ViewMode.Paused) { DrawPause(); return; }
+            if (View == ViewMode.CampaignComplete) { DrawCampaignSummary(); return; }
             GUI.Box(new Rect(18, 18, 420, 146), GUIContent.none);
             GUI.Label(new Rect(34, 28, 400, 42), "RISKY DELIVERY", titleStyle);
             GUI.Label(new Rect(34, 72, 400, 30), $"{ChapterName}   /   {Elapsed:0.0}s", textStyle);
