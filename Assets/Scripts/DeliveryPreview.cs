@@ -68,10 +68,10 @@ namespace RiskyDelivery
             yield return new WaitForSeconds(0.8f);
             yield return Capture("delivered");
             game.StartChapter(4);
-            game.SetControls(Vector2.up, false);
+            game.SetControls(Vector2.up, false, true);
             float deadline = Time.realtimeSinceStartup + 10;
             while (game.Cart.position.z < 0 && Time.realtimeSinceStartup < deadline) yield return null;
-            game.SetControls(Vector2.down, false);
+            game.SetControls(Vector2.down, false, true);
             while (!game.Balance.HasFallen && Time.realtimeSinceStartup < deadline) yield return null;
             if (!game.Balance.HasFallen) throw new InvalidOperationException("Preview expected cargo to fall during an abrupt reversal");
             yield return new WaitForSeconds(0.5f);

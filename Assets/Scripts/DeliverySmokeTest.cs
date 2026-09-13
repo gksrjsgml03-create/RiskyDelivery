@@ -51,10 +51,11 @@ namespace RiskyDelivery
             Check(game.Progress.CompletedCount == 0, "Automated gameplay has an isolated empty profile");
             Time.timeScale = 3; // Keep the same fixed physics timestep, run the test faster.
             yield return CheckCourierView();
+            yield return MovementSmokeTests.Run(game, Check);
             yield return CheckSessionFlow();
             game.StartChapter(1);
             Check(!game.TryNextChapter(), "Cannot advance before delivery");
-            game.SetControls(Vector2.up, false);
+            game.SetControls(Vector2.up, false, true);
             yield return Until(() => game.Cart.position.z >= 22.8f, 10, "Training movement");
             Check(game.State == DeliveryGame.RunState.Playing, "Must stop before delivery");
             game.SetControls(Vector2.zero, true);
@@ -73,15 +74,15 @@ namespace RiskyDelivery
             Debug.Log("RISKY_CHECK_OK: low-speed impact and blocking geometry");
 
             game.Restart();
-            game.SetControls(Vector2.up, false);
+            game.SetControls(Vector2.up, false, true);
             yield return Until(() => game.CargoHealth < 100, 5, "Fast barricade collision causes damage");
             int afterImpact = game.CargoHealth;
             Check(afterImpact > 0, "One ordinary collision is survivable");
             yield return new WaitForSeconds(1);
             Check(game.CargoHealth == afterImpact, "Holding against wall does not repeatedly damage cargo");
-            game.SetControls(Vector2.down, false);
+            game.SetControls(Vector2.down, false, true);
             yield return Until(() => game.Cart.position.z < -11, 5, "Reverse away from barrier");
-            game.SetControls(Vector2.up, false);
+            game.SetControls(Vector2.up, false, true);
             yield return Until(() => game.State == DeliveryGame.RunState.Failed, 6, "Repeated hard collision breaks parcel");
             Check(game.CargoHealth == 0 && game.Rating == 0, "Failed parcel cannot earn a rating");
             Check(game.Progress.BestStars(2) == 0, "Failed runs do not unlock a completed record");
@@ -146,10 +147,10 @@ namespace RiskyDelivery
             yield return CheckNightDelivery();
             game.StartChapter(4);
             game.Restart();
-            game.SetControls(Vector2.up, false);
+            game.SetControls(Vector2.up, false, true);
             yield return Until(() => game.Cart.position.z > 0, 5, "Approach hill at speed");
             Check(game.State == DeliveryGame.RunState.Playing && game.CargoHealth == 100, "Fast approach has no wall impact");
-            game.SetControls(Vector2.down, false);
+            game.SetControls(Vector2.down, false, true);
             yield return Until(() => game.Balance.HasFallen, 4, "Abrupt reversal drops unsecured cargo on the hill");
             Check(game.State == DeliveryGame.RunState.Failed && game.CargoHealth == 0 && game.Rating == 0, "Fallen cargo fails delivery");
             Check(game.Balance.FallenBody != null && game.Balance.FallenBody.transform.parent == null && !game.Balance.FallenBody.isKinematic, "Dropped parcel is an independent physical body");
@@ -161,9 +162,9 @@ namespace RiskyDelivery
             game.Restart();
             CheckReset();
             Check(!game.Balance.HasFallen && game.Balance.FallenBody == null && game.Balance.Risk == 0 && game.Chapter == 4, "Retry restores secured cargo in hill chapter");
-            game.SetControls(Vector2.up, false);
+            game.SetControls(Vector2.up, false, true);
             yield return Until(() => game.Cart.position.z > 0, 5, "Approach hill again after restart");
-            game.SetControls(Vector2.down, false);
+            game.SetControls(Vector2.down, false, true);
             yield return Until(() => game.Balance.HasFallen, 4, "Cargo can fall again after restart");
             game.StartChapter(1);
             CheckReset();
@@ -236,7 +237,7 @@ namespace RiskyDelivery
             Vector3 position = game.Cart.position, velocity = game.Cart.linearVelocity;
             float elapsed = game.Elapsed, trafficClock = game.Night.Clock;
             Check(game.View == DeliveryGame.ViewMode.Paused && Time.timeScale == 0 && AudioListener.pause, "Pause freezes simulation time and gameplay audio");
-            game.SetControls(Vector2.right, false);
+            game.SetControls(Vector2.right, false, true);
             game.RegisterImpact(12);
             game.FailCargoDrop();
             yield return new WaitForSecondsRealtime(0.2f);
@@ -254,7 +255,7 @@ namespace RiskyDelivery
             CheckReset();
             Check(game.View == DeliveryGame.ViewMode.Driving && Time.timeScale == 3, "Retry from pause restores play");
             game.ShowTitle();
-            game.SetControls(Vector2.up, false);
+            game.SetControls(Vector2.up, false, true);
             yield return new WaitForSecondsRealtime(0.1f);
             Check(game.View == DeliveryGame.ViewMode.Title && game.Elapsed == 0 && game.Cart.position.z == -12, "Title menu does not advance a run");
             game.StartChapter(2);
@@ -284,7 +285,7 @@ namespace RiskyDelivery
             game.SetControls(Vector2.zero, true);
             yield return new WaitForSeconds(0.15f);
             game.Cart.linearVelocity = Vector3.right * 4;
-            game.SetControls(Vector2.left, false);
+            game.SetControls(Vector2.left, false, true);
             float end = Time.fixedTime + 0.25f;
             while (Time.fixedTime < end) yield return PhysicsFrame;
             measuredLateralSpeed = game.Cart.linearVelocity.x;

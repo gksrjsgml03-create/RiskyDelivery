@@ -34,7 +34,8 @@ namespace RiskyDelivery
         private static readonly Vector3 CameraOffset = new Vector3(2.6f, 3.2f, -5.8f);
         private Vector2 input, tilt, tiltVelocity;
         private Vector3 previousVelocity;
-        private bool braking;
+        private bool braking, sprintHeld;
+        public bool IsSprinting => View == ViewMode.Driving && State == RunState.Playing && sprintHeld && !braking && input.sqrMagnitude > 0.01f;
         public bool Automated { get; set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -108,7 +109,7 @@ namespace RiskyDelivery
             lastDamage = 0;
             lastImpactTime = -10;
             input = tilt = tiltVelocity = Vector2.zero;
-            braking = false;
+            braking = sprintHeld = false;
             previousVelocity = Vector3.zero;
             cartFriction.staticFriction = cartFriction.dynamicFriction = 0.05f;
             Cart.position = new Vector3(0, 0.5f, -12);
@@ -118,11 +119,12 @@ namespace RiskyDelivery
             followCamera.transform.position = Cart.position + CameraOffset;
         }
 
-        public void SetControls(Vector2 direction, bool brake)
+        public void SetControls(Vector2 direction, bool brake, bool sprint = false)
         {
             if (View != ViewMode.Driving) return;
             input = Vector2.ClampMagnitude(direction, 1);
             braking = brake;
+            sprintHeld = sprint;
         }
 
         private void Update()
@@ -132,7 +134,7 @@ namespace RiskyDelivery
             impactFlash = Mathf.Max(0, impactFlash - Time.deltaTime);
             parcelMaterial.color = impactFlash > 0 ? new Color(1, 0.18f, 0.12f) : Color.Lerp(new Color(0.45f, 0.2f, 0.1f), new Color(0.73f, 0.49f, 0.26f), CargoHealth / 100f);
             cargo.localRotation = Quaternion.Euler(tilt.y, 0, -tilt.x);
-            courier.Tick(Cart.linearVelocity, View == ViewMode.Driving ? Time.deltaTime : 0);
+            courier.Tick(Cart.linearVelocity, View == ViewMode.Driving ? Time.deltaTime : 0, IsSprinting);
             Sound.Tick(new Vector2(Cart.linearVelocity.x, Cart.linearVelocity.z).magnitude, View == ViewMode.Driving && State == RunState.Playing);
         }
 
@@ -146,7 +148,7 @@ namespace RiskyDelivery
             if (View != ViewMode.Driving) return;
             Vector3 horizontal = new Vector3(Cart.linearVelocity.x, 0, Cart.linearVelocity.z);
             Night.Step(Time.fixedDeltaTime);
-            Vector3 desired = new Vector3(input.x, 0, input.y) * (braking ? 2 : 8);
+            Vector3 desired = new Vector3(input.x, 0, input.y) * (braking ? 2 : IsSprinting ? 8 : 4);
             bool wet = OnWetRoad;
             cartFriction.staticFriction = cartFriction.dynamicFriction = wet ? 0.005f : 0.05f;
             // Low grip limits both braking and sideways correction, preserving momentum.

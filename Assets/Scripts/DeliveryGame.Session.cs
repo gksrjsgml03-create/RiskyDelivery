@@ -22,6 +22,7 @@ namespace RiskyDelivery
             View = view;
             input = Vector2.zero;
             braking = true;
+            sprintHeld = false;
             Time.timeScale = 0;
             AudioListener.pause = true;
         }
@@ -74,7 +75,7 @@ namespace RiskyDelivery
             if (Input.GetKeyDown(KeyCode.Return)) TryNextChapter();
             SetControls(new Vector2(
                 (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) ? 1 : 0) - (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow) ? 1 : 0),
-                (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) ? 1 : 0) - (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? 1 : 0)), Input.GetKey(KeyCode.Space));
+                (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) ? 1 : 0) - (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? 1 : 0)), Input.GetKey(KeyCode.Space), Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift));
         }
 
         private void OnApplicationFocus(bool focused)
