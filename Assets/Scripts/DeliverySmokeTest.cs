@@ -111,7 +111,9 @@ namespace RiskyDelivery
             game.SetControls(Vector2.zero, true);
             yield return Until(() => game.State == DeliveryGame.RunState.Delivered, 3, "Hill delivery");
             Check(game.CargoHealth == 100 && game.Rating == 3 && game.Cart.position.y < 0.7f, "Hill has damage-free ascent and descent");
-            Check(!game.TryNextChapter(), "No nonexistent fifth chapter");
+            Check(game.TryNextChapter() && game.Chapter == 5, "Advance from hill to night shift");
+            yield return CheckNightDelivery();
+            game.StartChapter(4);
             game.Restart();
             game.SetControls(Vector2.up, false);
             yield return Until(() => game.Cart.position.z > 0, 5, "Approach hill at speed");
@@ -136,9 +138,59 @@ namespace RiskyDelivery
             CheckReset();
             Check(!game.Balance.HasFallen && game.Balance.Risk == 0, "Chapter selection clears fallen cargo");
             Check(game.Chapter == 1 && !game.OnWetRoad && !RenderSettings.fog, "Chapter selection clears rain and resets state");
-            Debug.Log("RISKY_DELIVERY_SMOKE_OK: training, chapters, collisions, failure, restart, damage-free roadworks/rain/hill delivery, wet braking, counter-steering, physical hill ascent/descent, cargo drop and recovery");
+            Debug.Log("RISKY_DELIVERY_SMOKE_OK: five chapters, collisions, failure, restart, damage-free roadworks/rain/hill/night delivery, wet braking, counter-steering, hill ascent/descent, cargo drop, night signals, moving traffic contacts and lighting reset");
             Time.timeScale = 1;
             Application.Quit(0);
+        }
+
+        private IEnumerator CheckNightDelivery()
+        {
+            CheckReset();
+            Check(game.Night.Active && game.Night.HeadlightEnabled && RenderSettings.fog, "Night traffic and lighting enabled");
+            Vector3 initialVehicle = game.Night.VehiclePosition(0);
+            Check(game.Night.GetSignal(0) == NightTraffic.Signal.Green, "Night starts with a safe green");
+            yield return Until(() => game.Night.GetSignal(0) == NightTraffic.Signal.Amber, 4, "Green warns amber before moving traffic");
+            Check(Vector3.Distance(initialVehicle, game.Night.VehiclePosition(0)) < 0.01f, "Tug remains parked during warning");
+            yield return Until(() => game.Night.GetSignal(0) == NightTraffic.Signal.Red, 2, "Amber changes to red");
+            yield return new WaitForSeconds(0.5f);
+            Check(Vector3.Distance(initialVehicle, game.Night.VehiclePosition(0)) > 1, "Tug physically crosses during red");
+            yield return Until(() => game.Night.GetSignal(0) == NightTraffic.Signal.Green, 3, "Crossing reopens after traffic clears");
+            Check(game.Night.VehiclePosition(0).x > 5, "Tug clears central delivery lane before green");
+
+            // A stationary cart receives damage from actual moving traffic, not a direct damage call.
+            game.Restart();
+            game.Cart.position = new Vector3(0, 0.5f, NightTraffic.CrossingZ[0]);
+            game.SetControls(Vector2.zero, true);
+            yield return Until(() => game.CargoHealth < 100, 6, "Moving tug hits waiting cart in crossing");
+            Check(game.CargoHealth > 0 && game.State == DeliveryGame.RunState.Playing, "One moving traffic impact is survivable");
+            game.Restart();
+            CheckReset();
+            Check(game.Night.Clock == 0 && Vector3.Distance(initialVehicle, game.Night.VehiclePosition(0)) < 0.01f, "Retry resets traffic clock and positions");
+            for (int i = 0; i < NightTraffic.CrossingZ.Length; i++)
+            {
+                int crossing = i;
+                yield return DriveTo(new Vector2(0, NightTraffic.CrossingZ[i] - 4));
+                game.SetControls(Vector2.zero, true);
+                yield return Until(() => game.Night.GreenRemaining(crossing) > 4.2f, 5, "Wait behind stop line for a fresh green");
+                yield return DriveTo(new Vector2(0, NightTraffic.CrossingZ[i] + 3));
+                Check(game.CargoHealth == 100, "Green crossing is damage free");
+            }
+            yield return DriveTo(new Vector2(0, 25));
+            game.SetControls(Vector2.zero, true);
+            yield return Until(() => game.State == DeliveryGame.RunState.Delivered, 3, "Night delivery");
+            Check(game.Rating == 3 && game.CargoHealth == 100 && game.Night.NextCrossing(game.Cart.position.z) == -1, "Night has a complete safe route");
+            Check(!game.TryNextChapter(), "No nonexistent sixth chapter");
+            float stoppedClock = game.Night.Clock;
+            Vector3 stoppedVehicle = game.Night.VehiclePosition(0);
+            yield return new WaitForSeconds(0.4f);
+            Check(game.Night.Clock == stoppedClock && Vector3.Distance(stoppedVehicle, game.Night.VehiclePosition(0)) < 0.01f, "Traffic freezes on delivery result");
+            game.StartChapter(3);
+            Check(!game.Night.Active && !game.Night.HeadlightEnabled && RenderSettings.fog && Mathf.Approximately(RenderSettings.fogDensity, 0.012f), "Switching to rain disables night lights and restores rain fog");
+            game.StartChapter(1);
+            Check(!RenderSettings.fog && RenderSettings.ambientLight.maxColorComponent > 0.7f, "Switching to training restores daylight");
+            yield return new WaitForSeconds(0.1f);
+            Check(game.Night.Clock == 0, "Inactive night traffic does not advance");
+            Debug.Log("RISKY_CHECK_OK: night signal cycle, actual moving collision, safe crossings, night delivery, traffic reset/freeze and daylight restoration");
         }
 
         private IEnumerator MeasureBraking(int chapter)

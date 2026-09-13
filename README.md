@@ -50,6 +50,17 @@ Space로 감속해도 오래 미끄러지며, 반대 방향을 눌러도 기존 
 - 챕터 3 성공 후 Enter로 진행하거나 숫자 4로 선택합니다.
 - 챕터 1~3의 택배 흔들림은 기존처럼 시각 효과이며, 낙하 규칙은 챕터 4에 적용합니다.
 
+### 5. 야간 배송
+
+어두운 창고 거리에서 전조등과 교차로 조명을 따라 배달합니다. 두 교차로에서는 창고 운반 차량이 도로를 가로지릅니다.
+
+- **흰 정지선 앞에서 정차**하고 새 초록불을 기다립니다. 초록불은 6초이며, 남은 시간이 짧으면 다음 신호를 기다립니다.
+- 노란불 1초는 진입 금지 예고입니다. 이어지는 빨간불 동안 차량이 실제 물리 이동으로 도로를 건넙니다.
+- HUD에 다음 교차로와 신호 잔여 시간, 다음 초록불까지의 시간이 표시됩니다.
+- Space를 누른 저속 운행으로도 두 교차로를 무피해 통과할 수 있습니다. 움직이는 차량에 부딪히면 상대 충돌 속도에 따라 택배가 손상됩니다.
+- `R`은 신호 주기·차량 위치·내구도를 함께 초기화합니다. 성공·실패 화면에서는 교통 흐름도 멈춥니다.
+- 챕터 4 성공 후 Enter로 진행하거나 숫자 5로 바로 선택합니다. 낙하 규칙은 언덕 챕터에만 적용됩니다.
+
 ## 조작
 
 | 키 | 동작 |
@@ -57,15 +68,14 @@ Space로 감속해도 오래 미끄러지며, 반대 방향을 눌러도 기존 
 | WASD / 방향키 | 이동 |
 | Space | 감속 / 누른 채 이동하면 저속 운행 |
 | R | 현재 챕터 재시작, 내구도와 시간 초기화 |
-| 1 / 2 / 3 / 4 | 연습 배송 / 공사 구간 / 빗길 배송 / 언덕 배송 선택 |
-| Enter | 챕터 1·2·3 성공 후 다음 챕터로 이동 |
+| 1 / 2 / 3 / 4 / 5 | 연습 배송 / 공사 구간 / 빗길 배송 / 언덕 배송 / 야간 배송 선택 |
+| Enter | 챕터 1~4 성공 후 다음 챕터로 이동 |
 
 ## 바로 플레이하기 (현재 PC)
 
-기존 정식 Unity 빌드는 `Builds/Windows/RiskyDelivery.exe`이며 챕터 1~3이 포함되어 있습니다.
-챕터 4의 새 정식 빌드는 Unity 라이선스 활성화 후 **Risky Delivery → Build Windows**로 생성해야 합니다.
-현재 Unity는 `No valid Unity Editor license found`로 빌드를 중단합니다 (`Logs/build-hill.log`).
-새 챕터를 시험하려면 `Builds/Validation/HillPlayer/RiskyDelivery.exe`를 실행하고 **4번 키**를 누릅니다. 이 실행본은 기존 플레이어에 새 스크립트를 적용한 로컬 검증본입니다.
+`Builds/Windows/RiskyDelivery.exe`를 실행합니다. 최신 Unity Windows Development 빌드에는 **챕터 1~5**가 포함되어 있습니다.
+게임 창을 클릭한 뒤 **5번 키**로 야간 배송을 선택합니다.
+이전에 언덕 챕터 빌드를 막았던 Unity 라이선스 문제는 해소되었으며, 언덕·야간 챕터 모두 새 Unity 빌드에 포함되어 있습니다.
 실행 파일은 로컬에 있으며 Git에는 포함하지 않습니다.
 다른 PC로 옮길 때는 exe만이 아니라 `Builds/Windows` 폴더 전체를 복사합니다.
 
@@ -80,7 +90,7 @@ Space로 감속해도 오래 미끄러지며, 반대 방향을 눌러도 기존 
 프로젝트 설정을 다시 준비하려면 메뉴 **Risky Delivery → Prepare Project**를 실행합니다.
 Windows 실행 파일은 **Risky Delivery → Build Windows**로 만듭니다.
 
-## 기존 챕터 1~3 검증 (2026-09-13)
+## 검증 (2026-09-13)
 
 - 전체 C# 컴파일 및 Unity Windows Development 빌드 통과.
 - 실제 Windows 플레이어의 그래픽 없는 모드에서 전체 주행·충돌·챕터 자동 검사 통과 (종료 코드 0).
@@ -93,10 +103,15 @@ Windows 실행 파일은 **Risky Delivery → Build Windows**로 만듭니다.
 - 챕터 2 → 3 전환과 챕터 3 무피해 완주, 재시작, 다른 챕터 전환 시 빗길 효과 초기화.
 - 같은 초기 속도 6m/s에서 Space로 제동: 마른 도로 약 0.89m, 빗길 약 7.09m 이동 후 정지 기준 속도에 도달.
 - 초기 횡속도 4m/s에서 약 0.25초간 반대 방향 조작: 마른 도로 약 0.62m/s, 빗길 약 3.25m/s의 기존 횡속도 유지.
-- 존재하지 않는 챕터 4로 진행하지 않는지 확인.
+- 실제 경사로 상승·하강과 언덕 무피해 완주, 급격한 방향 전환 시 택배 낙하 및 독립 물리 이동.
+- 낙하 후 배송 차단, 재시작·챕터 변경 시 택배와 적재 상태 복원.
+- 챕터 4 → 5 전환, 초록·노랑·빨강 신호 순서와 차량 이동, 정지한 카트에 움직이는 차량이 충돌할 때의 피해.
+- 두 교차로를 신호에 맞춰 통과해 내구도 100% 야간 배송 완료.
+- 야간 재시작 시 신호·차량 초기화, 배송 결과에서 차량 정지, 다른 챕터 전환 시 전조등 비활성화 및 조명·안개 복원.
+- 존재하지 않는 챕터 6으로 진행하지 않는지 확인.
 
-그래픽 모드에서 챕터 1·2·3 및 성공·실패 화면을 게임 내부에서 캡처해 검토했습니다.
-캡처 결과는 로컬 `Builds/Validation/RainPreview/`에 저장되어 있습니다.
+그래픽 모드에서 챕터 1~5, 야간 노란불·이동 차량, 성공·실패·택배 낙하 화면을 게임 내부에서 캡처해 검토했습니다.
+캡처 결과는 로컬 `Builds/Validation/NightPreview/`에 저장되어 있습니다.
 캡처는 화면 검토용 상태를 설정합니다. 실제 완주 검증은 위의 별도 주행 검사로 수행합니다.
 
 자동 검사 명령:
@@ -109,28 +124,29 @@ RiskyDelivery.exe -batchmode -nographics -risky-smoke-test -logFile smoke.log
 화면 캡처 명령 (그래픽 창이 보여야 하며, hidden / nographics 모드는 지원하지 않습니다):
 
 ```text
-RiskyDelivery.exe -risky-preview C:\Users\gksrj\RiskyDelivery\Builds\Validation\RainPreview
+RiskyDelivery.exe -risky-preview C:\Users\gksrj\RiskyDelivery\Builds\Validation\NightPreview
 ```
 
 완료하면 `RISKY_DELIVERY_PREVIEW_OK`를 기록하고 자동 종료합니다.
-로컬 로그: `Logs/smoke.log`, `Logs/preview.log`, `Logs/build.log`.
+최신 로컬 로그: `Logs/smoke-windows.log`, `Logs/preview-night.log`, `Logs/build-latest.log`.
 `Tools/Check-Compile.ps1`은 설치된 Unity 참조 DLL로 C# 컴파일만 검사합니다.
 
-## 챕터 4 검증
+## 빌드·검증 자동화
 
-전체 C# 컴파일과 별도 검증 플레이어의 자동 주행 검사(종료 코드 0, `RISKY_DELIVERY_SMOKE_OK`)가 통과했습니다. Unity 라이선스 문제로 신규 에디터 빌드는 아직 완료하지 못했습니다.
-`Tools/Test-PlayerScripts.ps1`은 기존 Mono 플레이어를 `Builds/Validation/HillPlayer`로 복사하고, 현재 게임 스크립트를 컴파일해 해당 복사본에서 자동 주행 검사를 수행합니다.
-원본 Windows 빌드는 수정하지 않습니다. 이 검사는 새 Unity 에셋 임포트·씬·빌드·스트리핑 검증을 대체하지 않습니다.
+아래 명령 하나로 C# 컴파일 → 새 Unity Windows 빌드 → 해당 실행 파일의 전체 자동 주행 검사를 수행합니다.
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Test-PlayerScripts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Build-And-Test.ps1
 ```
 
-검사 항목: 기존 챕터 회귀 검사, 3 → 4 전환, 실제 경사로 상승·하강 및 무피해 완주, 언덕 위 급격한 방향 전환 시 낙하와 실패, 떨어진 택배의 독립 물리 이동, 낙하 후 배송 차단, 재시작·챕터 변경 시 적재 상태 복원.
-검사 로그는 `Logs/smoke-hill.log`에 기록합니다.
-검증 플레이어의 그래픽 모드에서도 챕터 1~4, 성공·파손·언덕 위 낙하 화면을 캡처해 확인했습니다 (`Logs/preview-hill.log`: `RISKY_DELIVERY_PREVIEW_OK`). 캡처는 `Builds/Validation/HillPreview/`에 있습니다.
+성공 시 종료 코드 0과 `BUILD_AND_TEST_OK`를 출력합니다. 검사 결과는 `Builds/Validation/verification.json`에 기록합니다. 빌드나 테스트가 실패하면 오류로 종료합니다.
+
+라이선스가 다시 차단될 때만 `-AllowExistingPlayer`를 명시하면 기존 Mono 플레이어의 복사본으로 스크립트 검증을 이어갑니다. 이 경우 테스트가 통과해도 **종료 코드 2**와 `SCRIPT_TESTS_PASSED_BUILD_BLOCKED`로 새 빌드 미완료를 구분합니다. 일반 빌드 오류는 이 경로로 숨기지 않습니다.
+
+`Tools/Test-PlayerScripts.ps1`만 실행하면 원본을 수정하지 않고 `Builds/Validation/NightPlayer` 복사본에서 새 스크립트를 검사합니다 (`Logs/smoke-NightPlayer.log`). `-ValidationName`으로 별도 복사본 이름을 지정할 수도 있습니다. 이 방식은 Unity 임포트·씬·스트리핑 및 새 빌드 검증을 대체하지 않습니다.
 
 ## 개발 방식
 
-기능별로 구현 → 검증 → 결과 안내 → 커밋·푸시를 진행합니다.
+사용자가 개발 방향을 결정하고, 에이전트가 구현 → 검증·빌드 → 문서 갱신 → 커밋·푸시를 수행합니다. 작업 규칙은 `AGENTS.md`에 기록되어 있습니다.
+GitHub Actions를 통한 배포 자동화는 향후 배포 단계에서 진행합니다.
 Library, Temp, Logs, Builds 등 생성 파일은 Git에 포함하지 않습니다.

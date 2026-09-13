@@ -33,9 +33,15 @@ namespace RiskyDelivery
                 game.StartChapter(chapter);
                 if (chapter == 3) game.Cart.position = new Vector3(3.8f, 0.4f, -4);
                 if (chapter == 4) game.Cart.position = new Vector3(0, 2.2f, 4);
+                if (chapter == 5) game.Cart.position = new Vector3(0, 0.5f, -5);
                 yield return new WaitForSeconds(0.8f);
                 yield return Capture("chapter" + chapter);
             }
+            while (game.Night.GetSignal(0) != NightTraffic.Signal.Amber) yield return null;
+            yield return Capture("night-amber");
+            while (game.Night.GetSignal(0) != NightTraffic.Signal.Red) yield return null;
+            yield return new WaitForSeconds(1.25f);
+            yield return Capture("night-traffic");
             game.RegisterImpact(12);
             yield return new WaitForSeconds(0.5f);
             game.RegisterImpact(12);
