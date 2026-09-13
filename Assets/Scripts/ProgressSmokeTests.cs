@@ -31,6 +31,13 @@ namespace RiskyDelivery
             File.WriteAllText(futurePath, future);
             new DeliveryProgress(futurePath).Record(1, 3, 20);
             check(File.ReadAllText(futurePath) == future, "Newer save formats are not overwritten");
+            string legacyPath = Path.Combine(root, "legacy.json");
+            File.WriteAllText(legacyPath, "{\"version\":1,\"stars\":[3],\"seconds\":[25]}");
+            var legacy = new DeliveryProgress(legacyPath);
+            check(legacy.SoundEnabled && legacy.BestStars(1) == 3, "Old records migrate with sound enabled");
+            legacy.SetSoundEnabled(false);
+            var muted = new DeliveryProgress(legacyPath);
+            check(!muted.SoundEnabled && muted.BestStars(1) == 3 && muted.BestSeconds(1) == 25, "Mute preference survives reload without losing records");
             string blockedDirectory = Path.Combine(root, "not-a-directory");
             File.WriteAllText(blockedDirectory, "block");
             var unavailable = new DeliveryProgress(Path.Combine(blockedDirectory, "progress.json"));

@@ -24,6 +24,7 @@ namespace RiskyDelivery
             }
             GUI.backgroundColor = primary ? new Color(0.08f, 0.48f, 0.4f) : new Color(0.15f, 0.23f, 0.32f);
             bool clicked = GUI.Button(rect, label, menuButtonStyle);
+            if (clicked) Sound.Click();
             GUI.backgroundColor = Color.white;
             return clicked;
         }
@@ -43,7 +44,8 @@ namespace RiskyDelivery
             }
             else GUI.Label(new Rect(76, 380, 430, 48), Progress.Notice.Length > 0 ? Progress.Notice : "Your best results are saved automatically.", smallStyle);
             GUI.Label(new Rect(76, 442, 440, 90), "WASD / ARROWS   Move\nSPACE   Brake / drive slowly\nR   Retry your delivery\nESC   Pause / return to menu", smallStyle);
-            if (MenuButton(new Rect(76, 548, 430, 48), "QUIT GAME")) Application.Quit();
+            if (MenuButton(new Rect(76, 548, 206, 48), Progress.SoundEnabled ? "SOUND ON  [M]" : "SOUND OFF  [M]")) ToggleSound();
+            if (MenuButton(new Rect(300, 548, 206, 48), "QUIT GAME")) Application.Quit();
             GUI.Label(new Rect(590, 90, 450, 48), "CHOOSE A DELIVERY", titleStyle);
             GUI.Label(new Rect(590, 142, 450, 30), "All routes are available for practice.", smallStyle);
             for (int chapter = 1; chapter <= ChapterCount; chapter++)
@@ -64,7 +66,8 @@ namespace RiskyDelivery
             if (MenuButton(new Rect(320, 291, 460, 52), "RESUME  [ESC]", true)) Resume();
             if (MenuButton(new Rect(320, 356, 460, 52), "RESTART DELIVERY  [R]")) Restart();
             if (MenuButton(new Rect(320, 421, 460, 52), "MAIN MENU")) ShowTitle();
-            if (MenuButton(new Rect(320, 486, 460, 52), "QUIT GAME")) Application.Quit();
+            if (MenuButton(new Rect(320, 486, 220, 52), Progress.SoundEnabled ? "SOUND ON  [M]" : "SOUND OFF  [M]")) ToggleSound();
+            if (MenuButton(new Rect(558, 486, 222, 52), "QUIT GAME")) Application.Quit();
         }
 
         private void DrawCampaignSummary()

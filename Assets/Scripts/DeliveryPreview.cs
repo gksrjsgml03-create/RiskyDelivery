@@ -31,6 +31,9 @@ namespace RiskyDelivery
             game.ShowTitle();
             yield return new WaitForSecondsRealtime(0.2f);
             yield return Capture("title");
+            game.ToggleSound();
+            yield return Capture("sound-muted");
+            game.ToggleSound();
             for (int chapter = 1; chapter <= DeliveryGame.ChapterCount; chapter++)
             {
                 game.StartChapter(chapter);

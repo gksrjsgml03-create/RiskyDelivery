@@ -29,6 +29,7 @@ namespace RiskyDelivery
             {
                 if (State == RunState.Playing) Pause(); else ShowTitle();
             }
+            if (GUI.Button(new Rect(182, 176, 180, 32), Progress.SoundEnabled ? "SOUND ON  [M]" : "SOUND OFF  [M]")) ToggleSound();
             GUI.Box(new Rect(18, 610, 660, 68), GUIContent.none);
             GUI.Label(new Rect(34, 620, 630, 28), "WASD / ARROWS  Move     SPACE  Brake     R  Restart", textStyle);
             GUI.Label(new Rect(34, 651, 620, 24), "Release movement keys to stop. Keep your parcel steady!", smallStyle);

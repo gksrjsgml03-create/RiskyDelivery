@@ -15,6 +15,7 @@ namespace RiskyDelivery
         public CargoBalance Balance { get; private set; }
         public NightTraffic Night { get; private set; }
         public DeliveryProgress Progress { get; private set; }
+        public DeliverySound Sound { get; private set; }
         private GameObject roadworks, rainCourse, hillCourse;
         private Light sun;
         private PhysicsMaterial cartFriction;
@@ -48,6 +49,7 @@ namespace RiskyDelivery
             Automated = System.Array.IndexOf(args, "-risky-smoke-test") >= 0 || System.Array.IndexOf(args, "-risky-preview") >= 0;
             Progress = new DeliveryProgress(Automated ? null : System.IO.Path.Combine(Application.persistentDataPath, "progress.json"));
             BuildWorld();
+            Sound = new DeliverySound(gameObject, Progress.SoundEnabled);
             StartChapter(1);
             if (!Automated) ShowTitle();
         }
@@ -87,12 +89,14 @@ namespace RiskyDelivery
             lastDamage = Mathf.Clamp(Mathf.RoundToInt((normalSpeed - 2.5f) * 12), 1, 65);
             CargoHealth = Mathf.Max(0, CargoHealth - lastDamage);
             impactFlash = 0.8f;
-            if (CargoHealth == 0) State = RunState.Failed;
+            if (CargoHealth == 0) { State = RunState.Failed; Sound.Failed(); }
+            else Sound.Impact();
         }
 
         public void Restart()
         {
             RestorePlayTime();
+            Sound.Reset();
             Balance.Reset();
             Night.Reset();
             State = RunState.Playing;
@@ -125,6 +129,7 @@ namespace RiskyDelivery
             impactFlash = Mathf.Max(0, impactFlash - Time.deltaTime);
             parcelMaterial.color = impactFlash > 0 ? new Color(1, 0.18f, 0.12f) : Color.Lerp(new Color(0.6f, 0.18f, 0.1f), new Color(1, 0.7f, 0.19f), CargoHealth / 100f);
             cargo.localRotation = Quaternion.Euler(tilt.y, 0, -tilt.x);
+            Sound.Tick(new Vector2(Cart.linearVelocity.x, Cart.linearVelocity.z).magnitude, View == ViewMode.Driving && State == RunState.Playing);
         }
 
         private void FixedUpdate()
@@ -162,6 +167,7 @@ namespace RiskyDelivery
             Cart.linearVelocity = Vector3.zero;
             Progress.Record(Chapter, Rating, Mathf.Max(0.01f, Elapsed));
             if (!alreadyComplete && Progress.IsComplete) View = ViewMode.CampaignComplete;
+            Sound.Delivered(!alreadyComplete && Progress.IsComplete);
         }
 
         public void FailCargoDrop()
@@ -169,6 +175,7 @@ namespace RiskyDelivery
             if (View != ViewMode.Driving || State != RunState.Playing) return;
             CargoHealth = 0;
             State = RunState.Failed;
+            Sound.Failed();
         }
 
         private void LateUpdate()

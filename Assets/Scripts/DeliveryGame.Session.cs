@@ -23,6 +23,7 @@ namespace RiskyDelivery
             input = Vector2.zero;
             braking = true;
             Time.timeScale = 0;
+            AudioListener.pause = true;
         }
 
         public void Resume()
@@ -34,10 +35,18 @@ namespace RiskyDelivery
         {
             if (Time.timeScale == 0) Time.timeScale = runningTimeScale;
             View = ViewMode.Driving;
+            AudioListener.pause = false;
+        }
+
+        public void ToggleSound()
+        {
+            Progress.SetSoundEnabled(!Progress.SoundEnabled);
+            Sound.SetEnabled(Progress.SoundEnabled);
         }
 
         private void ReadPlayerInput()
         {
+            if (Input.GetKeyDown(KeyCode.M)) ToggleSound();
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 if (View == ViewMode.Paused) Resume();
@@ -76,6 +85,8 @@ namespace RiskyDelivery
         private void OnDestroy()
         {
             if (Time.timeScale == 0) Time.timeScale = 1;
+            AudioListener.pause = false;
+            Sound?.Dispose();
         }
     }
 }
